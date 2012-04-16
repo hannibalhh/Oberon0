@@ -1,0 +1,9 @@
+34/4	-2	ab
+BEGIN23
+BEGIN 
+23-34+15*4/2
+// das ist ein Kommentar
+-31+122
+//	  
+END		        
+18

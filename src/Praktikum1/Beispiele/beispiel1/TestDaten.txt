@@ -1,0 +1,12 @@
+x v
+xy
+34/4	-2	ad
+23-34 -31 + 122 - 12  b 13b 18
+ax*[a|bc]
+3434 // Emil
+aa axx axbc axx|
+//Kommentar 1
+ //Kommentar 2
+// 
+END		        
+
