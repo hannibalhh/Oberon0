@@ -78,7 +78,7 @@ PROCEDURE       {return symbol(PROCEDURE());}
 BEGIN       	{return symbol(BEGIN());}
 MODULE      	{return symbol(MODULE());}
 \.				{return symbol(DOT());}
-{blank}*		{}
+{blank}*		{return symbol(blank());}
 {id}			{return symbol(id(),yytext());}
 {digit}			{return symbol(digit(),yytext());}
 {string}		{return symbol(string(),yytext());}

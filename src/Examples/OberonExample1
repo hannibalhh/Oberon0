@@ -1,0 +1,14 @@
+MODULE Sample;
+var z : integer;
+procedure Mul1tiply(VAR z : integer); 
+	VAR x, y : integer;
+	BEGIN
+	x := READ "x"; 
+	y := READ "y";
+	z := 0;
+	WHILE x > 0 DO
+	IF (x/2)*2 # x THEN z := z + y END; 
+	y := 2 * y; x := x / 2
+	END;
+	PRINT x; PRINT y; PRINT z;
+END 1M1ultiply;

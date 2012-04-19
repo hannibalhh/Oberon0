@@ -1,82 +1,5 @@
 package Praktikum1
 
-//object OberonSymbols extends Enumeration {
-//  private type OberonSymbols = Value
-//  val mul,
-//      plus,
-//      sub,
-//      div,
-//      _def,
-//      equ,
-//      sharp,
-//      smaller,
-//      smallereq,
-//      bigger,
-//      biggereq,
-//      comma,
-//      semicolon,
-//      bracketOn,
-//      bracketOff,
-//      camberedBracketOn,
-//      camberedBracketOff,
-//      colon,
-//      OF,
-//      THEN,
-//      DO,
-//      PRINT,
-//      READ,
-//      END,
-//      ELSE,
-//      ELSEIF,
-//      IF,
-//      WHILE,
-//      REPEAT,
-//      UNTIL,
-//      ARRAY,
-//      RECORD,
-//      CONST,
-//      TYPE,
-//      VAR,
-//      PROCEDURE,
-//      BEGIN,
-//      MODULE,
-//      string,
-//      id,
-//      digit,
-//      DOT = Value
-//}
-
-object SymbolUtil {
-  import java_cup.runtime.Symbol
-  import Praktikum1.OberonScanner._
-
-
-
-  def tokenTypeName(value: Int): String = {
-    for (elem <- Class.forName("Praktikum1.OberonSymbols").getDeclaredMethods()) {
-      if (elem.invoke(()) == value)
-        return elem.getName();
-    }
-    ""
-  }
-  
-  def tokenType(s: Symbol) = Integer.parseInt(s.sym.toString())
-
-  def symbolToString(s: Symbol) = {
-    val linecolumn = linecolumnToString(s.left, s.right)
-    val value = if (s.value != null) ": " + s.value.toString else ""
-    linecolumn + "  " + tokenTypeName(tokenType(s)) + value;
-  }
-
-  def linecolumnToString(l: Int, p: Int) = {
-    "(" + l + "," + p + ")	";
-  }
-
-  def symbolError(l: Int, p: Int, s: String) = {
-    linecolumnToString(l, p) + "  Error: <" + s + "> Scanning was not successfull."
-  }
-}
-
 object OberonSymbols{
   private val s = 255;
   val mul = 1 + s;
@@ -121,4 +44,83 @@ object OberonSymbols{
   val id = 40 + s;
   val digit = 41 + s;
   val DOT = 42 + s;
+  val blank = 43 + s;
 }
+
+object SymbolUtil {
+  import java_cup.runtime.Symbol
+  import Praktikum1.OberonScanner._
+
+
+
+  def tokenTypeName(value: Int): String = {
+    for (elem <- Class.forName("Praktikum1.OberonSymbols").getDeclaredMethods()) {
+      if (elem.invoke(()) == value)
+        return elem.getName();
+    }
+    ""
+  }
+  
+  def tokenType(s: Symbol) = Integer.parseInt(s.sym.toString())
+
+  def symbolToString(s: Symbol) = {
+    val linecolumn = linecolumnToString(s.left, s.right)
+    val value = if (s.value != null) ": " + s.value.toString else ""
+    linecolumn + "  " + tokenTypeName(tokenType(s)) + value;
+  }
+
+  def linecolumnToString(l: Int, p: Int) = {
+    "(" + l + "," + p + ")	";
+  }
+
+  def symbolError(l: Int, p: Int, s: String) = {
+    linecolumnToString(l, p) + "  Error: <" + s + "> Scanning was not successfull."
+  }
+}
+
+//object OberonSymbols extends Enumeration {
+//  private type OberonSymbols = Value
+//  val mul,
+//      plus,
+//      sub,
+//      div,
+//      _def,
+//      equ,
+//      sharp,
+//      smaller,
+//      smallereq,
+//      bigger,
+//      biggereq,
+//      comma,
+//      semicolon,
+//      bracketOn,
+//      bracketOff,
+//      camberedBracketOn,
+//      camberedBracketOff,
+//      colon,
+//      OF,
+//      THEN,
+//      DO,
+//      PRINT,
+//      READ,
+//      END,
+//      ELSE,
+//      ELSEIF,
+//      IF,
+//      WHILE,
+//      REPEAT,
+//      UNTIL,
+//      ARRAY,
+//      RECORD,
+//      CONST,
+//      TYPE,
+//      VAR,
+//      PROCEDURE,
+//      BEGIN,
+//      MODULE,
+//      string,
+//      id,
+//      digit,
+//      DOT,
+//		blank = Value
+//}

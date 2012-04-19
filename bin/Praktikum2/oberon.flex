@@ -1,6 +1,6 @@
-package Praktikum1;
-import static Praktikum1.OberonSymbols.*;
-import java_cup.runtime.Symbol;
+package Praktikum2;
+import static Praktikum2.Token.*;
+import Praktikum2.Symbol;
 import JFlex.sym;
 %%
 %public
@@ -13,12 +13,8 @@ import JFlex.sym;
 %{
   public boolean isEOF(){
   	return zzAtEOF;
-  }
-
-  private Symbol symbol(int type) {
-    return new Symbol(type, yyline, yycolumn);
-  }
-  
+  } 
+    
   private int line(){
   	return yyline+1;
   }
@@ -26,15 +22,19 @@ import JFlex.sym;
   private int column(){
   	return yycolumn+1;
   }
-  
-  private Symbol symbol(int type, Object value) {
-    return new Symbol(type, line(), column(), value);
+
+  private Symbol symbol(String type) {
+    return new Symbol(type, line(), column(), scala.Option.empty());
+  }
+
+  private Symbol symbol(String type, Object value) {
+    return new Symbol(type, line(), column(), scala.Option.apply(value));
   }
 %}
 
 char = 			[a-zA-Z]
 digit = 		[0-9]
-id = 			{char}({char}|{digit})*
+ident = 		{char}({char}|{digit})*
 string = 		(\")({char} | {digit} | {blank})+(\")
 blank=			[ \t\n\r]
 rowComment = 	"//"[^\r\n]*
@@ -79,10 +79,10 @@ BEGIN       	{return symbol(BEGIN());}
 MODULE      	{return symbol(MODULE());}
 \.				{return symbol(DOT());}
 {blank}*		{return symbol(blank());}
-{id}			{return symbol(id(),yytext());}
-{digit}			{return symbol(digit(),yytext());}
+{ident}			{return symbol(ident(),yytext());}
+{digit}*			{return symbol(integer(),yytext());}
 {string}		{return symbol(string(),yytext());}
 ^{rowComment}	{}
 \n 				{}
 \r				{}
-. 				{System.err.println (SymbolUtil.symbolError(line(),column(),yytext()));System.exit(0);}
+. 				{System.err.println (Symbol.symbolError(line(),column(),yytext()));System.exit(0);}
