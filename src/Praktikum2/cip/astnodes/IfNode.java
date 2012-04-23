@@ -4,8 +4,8 @@ import java.util.HashMap;
 
 import Praktikum2.cip.base.AbstractDescr;
 import Praktikum2.cip.base.AbstractNode;
-import Praktikum2.cip.base.CodeGen; //import cip.base.Operator;
-import Praktikum2.cip.instructions.*;
+//import Praktikum2.cip.base.CodeGen; //import cip.base.Operator;
+//import Praktikum2.cip.instructions.*;
 
 public class IfNode extends AbstractNode {
 
@@ -53,19 +53,19 @@ public class IfNode extends AbstractNode {
 	public AbstractDescr compile(HashMap<String, AbstractDescr> symbolTable) {
 		int l1, l2;
 
-		trace("IfNode");
-		l1 = CodeGen.newLabel();
-		l2 = CodeGen.newLabel();
-		condition.compile(symbolTable);
-		CodeGen.outInstr(new BranchFalseInstruction(l1));
-		if (thenPart != null)
-			thenPart.compile(symbolTable);
-		CodeGen.outInstr(new JumpInstruction(l2));
-		CodeGen.outInstr(new LabelInstruction(l1));
-		if (elsePart != null)
-			elsePart.compile(symbolTable);
-		CodeGen.outInstr(new LabelInstruction(l2));
-		unindent();
+//		trace("IfNode");
+//		l1 = CodeGen.newLabel();
+//		l2 = CodeGen.newLabel();
+//		condition.compile(symbolTable);
+//		CodeGen.outInstr(new BranchFalseInstruction(l1));
+//		if (thenPart != null)
+//			thenPart.compile(symbolTable);
+//		CodeGen.outInstr(new JumpInstruction(l2));
+//		CodeGen.outInstr(new LabelInstruction(l1));
+//		if (elsePart != null)
+//			elsePart.compile(symbolTable);
+//		CodeGen.outInstr(new LabelInstruction(l2));
+//		unindent();
 		return null;
 	};
 

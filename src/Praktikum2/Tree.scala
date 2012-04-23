@@ -27,3 +27,14 @@ object Tree{
     }
   
 }
+
+//  class Archive extends Iterable[Symbol] {
+//    val archive: List[Symbol] = List()
+//
+//    class It extends Iterator[Symbol]{
+////      def next = {
+////        this.cou
+////      }
+//    }
+//    def iterator = new It
+//  }

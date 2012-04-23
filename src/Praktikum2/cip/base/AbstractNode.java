@@ -51,6 +51,6 @@ public abstract class AbstractNode
 	 */
 	public void trace(String s) {
 		this.indent();
-		if (Debug.debug > 0) System.out.println(spaces + s);
+//		if (Debug.debug > 0) System.out.println(spaces + s);
 	}
 }
