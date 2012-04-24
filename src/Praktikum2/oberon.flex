@@ -56,6 +56,8 @@ rowComment = 	"//"[^\r\n]*
 \)       		{return symbol(bracketOff());}
 \{      		{return symbol(camberedBracketOn());}
 \}      		{return symbol(camberedBracketOff());}
+\[      		{return symbol(edgeBracketOn());}
+\]      		{return symbol(edgeBracketOff());}
 :       		{return symbol(colon());}
 OF 				{return symbol(OF());}
 THEN       		{return symbol(THEN());}
