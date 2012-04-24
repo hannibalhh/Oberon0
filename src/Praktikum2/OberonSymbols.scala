@@ -40,7 +40,7 @@ object Token{
   val BEGIN = "BEGIN"
   val MODULE = "MODULE"
   val string = "string"
-  val ident = "id"
+  val ident = "ident"
   val integer = "integer"
   val DOT = "DOT"
   val blank = "blank"
