@@ -7,23 +7,24 @@ object OberonParser extends App {
   import Praktikum2.OberonScanner._
   import Tree._
 
-  val scanner = oberonScanner("src/Examples/NT/Module")
+  val scanner = oberonScanner("src/Examples/NT/FPSection")
   var current = next
+  
   def parser = {
     val m = Module
-    if (current != None) {
+    if (!current.isEmpty) {
       error("No Token")
       Nil
     }
     m
   }
 
-  println(test(Module))
+  val sym = Tree(Option(Symbol("s",1,1)))
+  println(test(FPSection))
 
   /*
    *  terminals
    */
-
   // operators
   def mul = checkPrimitive(Token.mul)
   def plus = checkPrimitiveTree(Token.plus)
@@ -77,7 +78,7 @@ object OberonParser extends App {
    *  with Precondition: current token is NOT used
    */
 
-  //Selector         = {Õ.Õ ident | Õ[Õ Expression Õ]Õ}.
+  //Selector         = {Õ.Õ ident | Õ[Õ Expression Õ]Õ}. // tested
   def Selector: Tree[_] = {
     println("Selector")
     if (DOT) {
@@ -101,8 +102,7 @@ object OberonParser extends App {
 
   //Factor           = ident Selector | integer | string |
   //                    Read |
-  //                   Õ(Õ Expression Õ)Õ.
-  // tested ident Selector
+  //                   Õ(Õ Expression Õ)Õ. // tested
   def Factor: Tree[_] = {
     println("Factor")
     val id = ident
@@ -162,8 +162,7 @@ object OberonParser extends App {
     }
   }
 
-  //Term             = Factor {(Õ*Õ | Õ/Õ) Factor}.
-  // tested int * int
+  //Term             = Factor {(Õ*Õ | Õ/Õ) Factor}. // tested
   def Term = {
     println("Term")
     val f = Factor
@@ -195,8 +194,7 @@ object OberonParser extends App {
   }
 
   //SimpleExpression = [Õ-Õ] Term
-  //                   {(Õ+Õ | Õ-Õ) Term}.
-  // tested 2 + 3 * a * - 2
+  //                   {(Õ+Õ | Õ-Õ) Term}. // tested
   def SimpleExpression = {
     println("SimpleExpression")
     val s = sub
@@ -240,7 +238,7 @@ object OberonParser extends App {
   //Expression       = SimpleExpression
   //                   [(Õ=Õ | Õ#Õ | Õ<Õ |
   //                     Õ<=Õ | Õ>Õ | Õ>=Õ)
-  //                    SimpleExpression].
+  //                    SimpleExpression]. // tested
   def Expression = {
     println("Expression")
     val s = SimpleExpression
@@ -289,7 +287,7 @@ object OberonParser extends App {
     }
   }
 
-  //IndexExpression  = integer | ConstIdent.
+  //IndexExpression  = integer | ConstIdent. // tested
   def IndexExpression = {
     println("IndexExpression")
     val i = integer
@@ -305,7 +303,7 @@ object OberonParser extends App {
     }
   }
 
-  //ConstIdent       = ident.  
+  //ConstIdent       = ident.  // tested
   def ConstIdent = {
     println("ConstIdent")
     val id = ident
@@ -318,7 +316,7 @@ object OberonParser extends App {
     }
   }
 
-  //IdentList = ident {Õ,Õ ident}.
+  //IdentList = ident {Õ,Õ ident}. // tested
   def IdentList = {
     println("IdentList")
     val id = ident
@@ -443,7 +441,7 @@ object OberonParser extends App {
     }
   }
 
-  //Type = ident | ArrayType | RecordType.
+  //Type = ident | ArrayType | RecordType. // tested
   def Type: Tree[_] = {
     println("Type")
     val id = ident
@@ -473,7 +471,7 @@ object OberonParser extends App {
       inc
       val t = Type
       if (t != Nil) {
-        Tree('FPSection, Type)
+        Tree('FPSection, t)
       } else {
         error("FPSection with Type after :")
         Nil
@@ -756,7 +754,7 @@ object OberonParser extends App {
 
   //Module           = ÕMODULEÕ ident Õ;Õ Declarations
   //                   ÕBEGINÕ StatementSequence
-  //                   ÕENDÕ ident Õ.Õ.
+  //                   ÕENDÕ ident Õ.Õ. // tested
   def Module = {
     println("Module")
     if (MODULE) {
@@ -866,7 +864,7 @@ object OberonParser extends App {
     }
   }
 
-  //ProcedureCall = ident Õ(Õ [ActualParameters] Õ)Õ.
+  //ProcedureCall = ident Õ(Õ [ActualParameters] Õ)Õ. // tested
   def ProcedureCall(id: Tree[_]) = {
     println("ProcedureCall")
     if (id != Nil) {
@@ -897,7 +895,7 @@ object OberonParser extends App {
 
   //IfStatement = ÕIFÕ Expression ÕTHENÕ StatementSequence
   //	{ÕELSIFÕ Expression ÕTHENÕ StatementSequence}
-  //  	[ÕELSEÕ StatementSequence] ÕENDÕ.
+  //  	[ÕELSEÕ StatementSequence] ÕENDÕ. // tested
   def IfStatement: Tree[_] = {
     println("IfStatement")
     if (IF) {
@@ -980,7 +978,7 @@ object OberonParser extends App {
     }
   }
 
-  //WhileStatement = ÕWHILEÕ Expression ÕDOÕ StatementSequence ÕENDÕ.
+  //WhileStatement = ÕWHILEÕ Expression ÕDOÕ StatementSequence ÕENDÕ. // tested
   def WhileStatement = {
     println("WhileStatement")
     if (WHILE) {
@@ -1016,7 +1014,7 @@ object OberonParser extends App {
     }
   }
 
-  //RepeatStatement = ÕREPEATÕ StatementSequence ÕUNTILÕ Expression.
+  //RepeatStatement = ÕREPEATÕ StatementSequence ÕUNTILÕ Expression. // tested
   def RepeatStatement = {
     println("RepeatStatement")
     if (REPEAT) {
@@ -1042,7 +1040,7 @@ object OberonParser extends App {
 
   //Statement = [Assignment | ProcedureCall |
   //   IfStatement | ÕPRINTÕ Expression |
-  //   WhileStatement | RepeatStatement].
+  //   WhileStatement | RepeatStatement]. // tested
   def Statement: Tree[_] = {
     println("Statement")
     val assignOrProccall = ident
@@ -1077,7 +1075,7 @@ object OberonParser extends App {
     }
   }
 
-  //StatementSequence = Statement {Õ;Õ Statement}.
+  //StatementSequence = Statement {Õ;Õ Statement}. // tested
   def StatementSequence: Tree[_] = {
     println("StatementSequence")
     Tree('StatementSequence, Statement, OptionalStatementSequence)      
@@ -1165,7 +1163,7 @@ object OberonParser extends App {
 
   def println(s: Any) = {
     if (current == None)
-      System.out.println(s)
+      System.out.println("(n/a)    "+s)
     else
       System.out.println(Symbol.linecolumn(current.get.line, current.get.column) + " " + s)
   }
@@ -1174,8 +1172,11 @@ object OberonParser extends App {
   def oberonScanner(path: String) = new OberonScanner(new FileReader(path))
 
   def error(expectedToken: String) {
-    if (current.isEmpty)
-      Console.err.println( " Error => " + current + " not expected")
+    Thread.sleep(40)
+    if (current.isEmpty){
+      Console.err.println("(n/a)    Error => " + current + " not expected")
+      Console.err.println("(n/a)    We expect:" + expectedToken)
+    }
     else {
       Console.err.println(Symbol.linecolumn(current.get.line, current.get.column) + " Error => " + current.get.token + " not expected")
       Console.err.println(Symbol.linecolumn(current.get.line, current.get.column) + " We expect:" + expectedToken)
