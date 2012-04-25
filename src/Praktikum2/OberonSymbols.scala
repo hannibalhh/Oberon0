@@ -13,7 +13,7 @@ object Token{
   val bigger = ">"
   val biggereq = ">="
   val comma = ","
-  val semicolon = ""
+  val semicolon = ";"
   val bracketOn = "("
   val bracketOff = ")"
   val camberedBracketOn = "{"

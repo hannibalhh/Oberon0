@@ -1,4 +1,9 @@
+MODULE blub;
+PROCEDURE Divide();
 VAR x, y, r, q, w : integer;
 BEGIN
 	x := READ "x";
+END Divide;
+BEGIN
+
 END

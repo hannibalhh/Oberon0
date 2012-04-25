@@ -7,13 +7,6 @@ BEGIN
 	r := x;
 	q := 0;
 	w := y; 
-	WHILE w <= r DO w:= 2 * w END ;
-	w := y; 
-	WHILE w > y DO
-		q := 2 * q; w := w / 2;
-		IF w <= r
-		THEN r := r - w; q := q + 1 END
-	END;
 	PRINT x; 
 	PRINT y; 
 	PRINT q; 
