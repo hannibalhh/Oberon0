@@ -1,4 +1,4 @@
 VAR x, y, r, q, w : integer;
 BEGIN
-	x := READ "x";
+	x := READ "x"
 END
