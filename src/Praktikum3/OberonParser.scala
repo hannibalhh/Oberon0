@@ -1,4 +1,4 @@
-package Praktikum2
+package Praktikum3
 import scala.annotation.tailrec
 
 @tailrec
@@ -787,7 +787,7 @@ object OberonParser extends App {
                   inc
                   if (DOT) {
                     inc
-                    Tree('Module, id, Tree('StatementsequenceModule,sts, id2))
+                    Tree('Module, id, Tree('StatementSequence,sts, id2))
                   } else {
                     error("Module with . after ident")
                     Nil
@@ -808,6 +808,7 @@ object OberonParser extends App {
             error("Module with BEGIN after Declarations")
             Nil
           }
+
         } else {
           error("Module with ; after ident")
           Nil
