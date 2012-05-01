@@ -19,7 +19,7 @@ object OberonParser extends App {
     m
   }
   val sym = Tree(Option(Symbol("s", 1, 1)))
-  println(test(Module))
+  trace(test(Module))
 
   /*
    *  terminals
@@ -79,7 +79,7 @@ object OberonParser extends App {
 
   //Selector         = {Õ.Õ ident | Õ[Õ Expression Õ]Õ}. // tested
   def Selector: Tree[_] = {
-    println("Selector")
+    trace("Selector")
     if (DOT) {
       inc
       val id = ident
@@ -103,7 +103,7 @@ object OberonParser extends App {
   //                    Read |
   //                   Õ(Õ Expression Õ)Õ. // tested
   def Factor: Tree[_] = {
-    println("Factor")
+    trace("Factor")
     val id = ident
     val int = integer
     val s = string
@@ -137,7 +137,7 @@ object OberonParser extends App {
 
   //Read             = READ [Prompt]. // tested
   def Read = {
-    println("Read")
+    trace("Read")
     val r = READ
     if (r) {
       inc
@@ -150,7 +150,7 @@ object OberonParser extends App {
 
   //Prompt           = string. // tested
   def Prompt = {
-    println("Prompt")
+    trace("Prompt")
     val s = string
     if (s != Nil) {
       inc
@@ -163,7 +163,7 @@ object OberonParser extends App {
 
   //Term             = Factor {(Õ*Õ | Õ/Õ) Factor}. // tested
   def Term = {
-    println("Term")
+    trace("Term")
     val f = Factor
     if (f != Nil) {
       Tree('Term, f, OptionalTerm)
@@ -174,7 +174,7 @@ object OberonParser extends App {
   }
 
   def OptionalTerm: Tree[_] = {
-    println("OptionalTerm")
+    trace("OptionalTerm")
     val m = mul
     val d = div
     if (m || d) {
@@ -195,7 +195,7 @@ object OberonParser extends App {
   //SimpleExpression = [Õ-Õ] Term
   //                   {(Õ+Õ | Õ-Õ) Term}. // tested
   def SimpleExpression = {
-    println("SimpleExpression")
+    trace("SimpleExpression")
     val s = sub
     if (s != Nil) {
       inc
@@ -218,7 +218,7 @@ object OberonParser extends App {
   }
 
   def OptionalSimpleExpression: Tree[_] = {
-    println("OptionalSimpleExpression")
+    trace("OptionalSimpleExpression")
     val p = plus
     val s = sub
     if (p != Nil) {
@@ -239,7 +239,7 @@ object OberonParser extends App {
   //                     Õ<=Õ | Õ>Õ | Õ>=Õ)
   //                    SimpleExpression]. // tested
   def Expression = {
-    println("Expression")
+    trace("Expression")
     val s = SimpleExpression
     if (s != Nil) {
       Tree('Expression, s, OptionalExpression)
@@ -250,7 +250,7 @@ object OberonParser extends App {
   }
 
   def OptionalExpression: Tree[_] = {
-    println("OptionalExpression")
+    trace("OptionalExpression")
     val e = equ
     val s = sharp
     val smal = smaller
@@ -288,7 +288,7 @@ object OberonParser extends App {
 
   //IndexExpression  = integer | ConstIdent. // tested
   def IndexExpression = {
-    println("IndexExpression")
+    trace("IndexExpression")
     val i = integer
     if (i != Nil) {
       inc
@@ -304,7 +304,7 @@ object OberonParser extends App {
 
   //ConstIdent       = ident.  // tested
   def ConstIdent = {
-    println("ConstIdent")
+    trace("ConstIdent")
     val id = ident
     if (id != Nil) {
       inc
@@ -317,7 +317,7 @@ object OberonParser extends App {
 
   //IdentList = ident {Õ,Õ ident}. // tested
   def IdentList = {
-    println("IdentList")
+    trace("IdentList")
     val id = ident
     if (id != Nil) {
       inc
@@ -329,7 +329,7 @@ object OberonParser extends App {
   }
 
   def OptionalIdentList: Tree[_] = {
-    println("OptionalIdentList")
+    trace("OptionalIdentList")
     if (comma) {
       inc
       val id = ident
@@ -347,7 +347,7 @@ object OberonParser extends App {
 
   //ArrayType = ÕARRAYÕ Õ[Õ IndexExpression Õ]Õ ÕOFÕ Type. //tested
   def ArrayType: Tree[_] = {
-    println("ArrayType")
+    trace("ArrayType")
     if (ARRAY) {
       inc
       if (edgeBracketOn) {
@@ -384,7 +384,7 @@ object OberonParser extends App {
 
   //FieldList = [IdentList Õ:Õ Type]. // tested
   def FieldList: Tree[_] = {
-    println("FieldList")
+    trace("FieldList")
     if (ident != Nil) {
       val idl = IdentList
       if (idl != Nil) {
@@ -413,7 +413,7 @@ object OberonParser extends App {
 
   //RecordType = ÕRECORDÕ FieldList {Õ;Õ FieldList} ÕENDÕ.
   def RecordType: Tree[_] = {
-    println("RecordType")
+    trace("RecordType")
     if (RECORD) {
       inc
       val f = FieldList
@@ -437,7 +437,7 @@ object OberonParser extends App {
   }
 
   def OptionalFieldList: Tree[_] = {
-    println("OptionalFieldList")
+    trace("OptionalFieldList")
     if (semicolon) {
       inc
       val f = FieldList
@@ -454,7 +454,7 @@ object OberonParser extends App {
 
   //Type = ident | ArrayType | RecordType. // tested
   def Type: Tree[_] = {
-    println("Type")
+    trace("Type")
     val id = ident
     val arr = ARRAY
     val rec = RECORD
@@ -473,7 +473,7 @@ object OberonParser extends App {
 
   //FPSection = [ÕVARÕ] IdentList Õ:Õ Type. // tested
   def FPSection = {
-    println("FPSection")
+    trace("FPSection")
     if (VAR) {
       inc
     }
@@ -495,7 +495,7 @@ object OberonParser extends App {
 
   //FormalParameters = FPSection {Õ;Õ FPSection}. // tested
   def FormalParameters = {
-    println("FormalParamters")
+    trace("FormalParamters")
     val fps = FPSection
     if (fps != Nil) {
       Tree('FormalParameters, fps, OptionalFormalParameters)
@@ -506,7 +506,7 @@ object OberonParser extends App {
   }
 
   def OptionalFormalParameters: Tree[_] = {
-    println("OptionalFPSection")
+    trace("OptionalFPSection")
     if (semicolon) {
       inc
       val fps = FPSection
@@ -524,7 +524,7 @@ object OberonParser extends App {
 
   //ProcedureHeading = ÕPROCEDUREÕ ident Õ(Õ [FormalParameters] Õ)Õ. // tested
   def ProcedureHeading = {
-    println("ProcedureHeading")
+    trace("ProcedureHeading")
     if (PROCEDURE) {
       inc
       val id = ident
@@ -554,7 +554,7 @@ object OberonParser extends App {
 
   //ProcedureBody    = Declarations ÕBEGINÕ StatementSequence ÕENDÕ // tested
   def ProcedureBody = {
-    println("ProcedureBody")
+    trace("ProcedureBody")
     val decl = Declarations
     if (decl != Nil) {
       if (BEGIN) {
@@ -584,7 +584,7 @@ object OberonParser extends App {
 
   //ProcedureDeclaration = ProcedureHeading Õ;Õ ProcedureBody ident.
   def ProcedureDeclaration = {
-    println("ProcedureDeclaration")
+    trace("ProcedureDeclaration")
     val ph = ProcedureHeading
     if (ph != Nil) {
       if (semicolon) {
@@ -621,7 +621,7 @@ object OberonParser extends App {
   //                          {IdentList Õ:Õ Type Õ;Õ}]
   //                   {ProcedureDeclaration Õ;Õ}. // tested
   def Declarations: Tree[_] = {
-    println("Declarations")
+    trace("Declarations")
     if (CONST) {
       inc
       val d = OptionalConstDeclarations
@@ -767,7 +767,7 @@ object OberonParser extends App {
   //                   ÕBEGINÕ StatementSequence
   //                   ÕENDÕ ident Õ.Õ. // tested
   def Module = {
-    println("Module")
+    trace("Module")
     if (MODULE) {
       inc
       val id = ident
@@ -825,7 +825,7 @@ object OberonParser extends App {
 
   //Assignment        = ident Selector Õ:=Õ Expression. // tested
   def Assignment(id: Tree[_]) = {
-    println("Assignment")
+    trace("Assignment")
     if (id != Nil) {
       val s = Selector
       if (_def != Nil) {
@@ -849,7 +849,7 @@ object OberonParser extends App {
 
   //ActualParameters  = Expression {Õ,Õ Expression}. // tested
   def ActualParameters = {
-    println("ActualParameters")
+    trace("ActualParameters")
     val expr = Expression
     if (expr != Nil) {
       Tree('ActualParameters, expr, OptionalExpresion)
@@ -877,7 +877,7 @@ object OberonParser extends App {
 
   //ProcedureCall = ident Õ(Õ [ActualParameters] Õ)Õ. // tested
   def ProcedureCall(id: Tree[_]) = {
-    println("ProcedureCall")
+    trace("ProcedureCall")
     if (id != Nil) {
       if (bracketOn) {
         inc
@@ -908,7 +908,7 @@ object OberonParser extends App {
   //	{ÕELSIFÕ Expression ÕTHENÕ StatementSequence}
   //  	[ÕELSEÕ StatementSequence] ÕENDÕ. // tested
   def IfStatement: Tree[_] = {
-    println("IfStatement")
+    trace("IfStatement")
     if (IF) {
       inc
       val expr = Expression
@@ -990,7 +990,7 @@ object OberonParser extends App {
 
   //WhileStatement = ÕWHILEÕ Expression ÕDOÕ StatementSequence ÕENDÕ. // tested
   def WhileStatement = {
-    println("WhileStatement")
+    trace("WhileStatement")
     if (WHILE) {
       inc
       val expr = Expression
@@ -1026,7 +1026,7 @@ object OberonParser extends App {
 
   //RepeatStatement = ÕREPEATÕ StatementSequence ÕUNTILÕ Expression. // tested
   def RepeatStatement = {
-    println("RepeatStatement")
+    trace("RepeatStatement")
     if (REPEAT) {
       inc
       val sts = StatementSequence
@@ -1052,7 +1052,7 @@ object OberonParser extends App {
   //   IfStatement | ÕPRINTÕ Expression |
   //   WhileStatement | RepeatStatement]. // tested
   def Statement: Tree[_] = {
-    println("Statement")
+    trace("Statement")
     val assignOrProccall = ident
     val ifst = IF
     val p = PRINT
@@ -1087,7 +1087,7 @@ object OberonParser extends App {
 
   //StatementSequence = Statement {Õ;Õ Statement}. // tested
   def StatementSequence: Tree[_] = {
-    println("StatementSequence")
+    trace("StatementSequence")
     Tree('StatementSequence, Statement, OptionalStatementSequence)
   }
 
@@ -1151,7 +1151,7 @@ object OberonParser extends App {
     if (current.isEmpty)
       false
     else if (current.get.token == token) {
-      println(token)
+      trace(token)
       true
     } else {
       false
@@ -1162,18 +1162,18 @@ object OberonParser extends App {
     if (current.isEmpty)
       Nil
     else if (current.get.token == token) {
-      println(token + " " + current.get.value.getOrElse(""))
+      trace(token + " " + current.get.value.getOrElse(""))
       Tree(current)
     } else {
       Nil
     }
   }
 
-  def println(s: Any) = {
+  def trace(s: Any) = {
     if (current == None)
-      System.out.println("(n/a)    " + s)
+      println("(n/a)    " + s)
     else
-      System.out.println(Symbol.linecolumn(current.get.line, current.get.column) + " " + s)
+      println(Symbol.linecolumn(current.get.line, current.get.column) + " " + s)
   }
 
   import java.io.FileReader
