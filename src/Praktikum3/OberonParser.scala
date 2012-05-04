@@ -4,7 +4,8 @@ import scala.annotation.tailrec
 @tailrec
 object OberonParser extends App {
   import Praktikum2._
-  import Praktikum2.OberonScanner._
+  import Praktikum3.OberonScanner._
+//  import Praktikum3.Tree._
   import Tree._
 
   val scanner = oberonScanner("src/Examples/NT/Module")
