@@ -3,38 +3,69 @@ package Praktikum3
 object Tree extends App{
 
   sealed trait Tree[+T] {
-    def print(n: Int): String = ""
-//    override def toString = "AbstractSyntaxTree:\n" +print(0)
+    
+    def print(n: Int): String = {
+      def after$(s:String) = {
+        val i = s.indexOf("$")
+        if (i > 0){
+            s.substring(s.indexOf("$")+1) match {
+              case "$less$eq" => "<="
+              case "$less" => "<"
+              case "$greater" => ">"
+              case "$greater$eq" => ">="            
+              case "colon$eq" => ":="
+              case "$plus" => "+"
+              case "$minus" => "-"
+              case "$times" => "*"
+              case "$div" => "/"
+              case x => x
+            }            
+        }    
+        else
+        	s
+      }
+      def ->(value: String,m:Int = n): String = "   "* m + after$(value) + "\n" 
+      val c = this.getClass()
+      var s = -> (c.getName) 
+      for(i<-c.getDeclaredFields()){   
+        val rawClass = i.getType.getEnclosingClass()
+        if (rawClass != null && rawClass.getName().contains("Tree")){        
+            i.setAccessible(true)
+        	val o:Tree[_] = i.get(this).asInstanceOf[Tree[_]] 
+            val p = o.print(n+1)
+            if (!p.isEmpty()){
+                s += ->(p,n+1)
+            }
+        }
+        else{
+            i.setAccessible(true)
+            s += -> (i.get(this).toString,n+2)
+        }
+      }
+      return s
+    }
+    override def toString = "AbstractSyntaxTree:\n" + print(0)
+//	  def compile
   }
   
   val id = Ident(Symbol("blub",1,1))
-  val foo = id * id
+  val foo = id > (id := (id + id))
   println(foo)
   
-  case object Nil extends Tree[Nothing] with Expression {
+  case object Nil extends Tree[Nothing] with Expression with Statement{
     override def toString = "."
-    override val left = None
-    override val right = None
+    override def print(n: Int): String = ""
   }
   
-  case class Integer(int: Symbol) extends Expression with IndexExpression{
-    override val left = None
-    override val right = None
-  }
+  case class Integer(int: Symbol) extends Expression with IndexExpression
   case object Integer
   
    //Selector         = {Õ.Õ ident | Õ[Õ Expression Õ]Õ}.
-  case class Ident(ident: Symbol, optional:Option[Expression] = None) extends Expression with Type with ConstIdent{
-    override val left = None
-    override val right = None
-  }
+  case class Ident(ident: Symbol, optional:Expression = Nil) extends Expression with Type with ConstIdent
   case object Ident
   
   // string 		 = ...
-  case class StringNode(string: Symbol) extends Expression{
-    override val left = None
-    override val right = None
-  }
+  case class StringNode(string: Symbol) extends Expression
   
   case object StringNode
   //Factor           = ident Selector | integer | string |
@@ -56,11 +87,10 @@ object Tree extends App{
   //                     Õ<=Õ | Õ>Õ | Õ>=Õ)
   //                    SimpleExpression].
   //ActualParameters  = Expression {Õ,Õ Expression}.
-  implicit def expToOption(expr: Expression) = Some(expr)
   
   trait Expression extends Tree[Expression]{
-    val left:Option[Expression]
-    val right:Option[Expression]
+    val left:Expression = Nil
+    val right:Expression = Nil
     val value = classOf[Expression].getName
     
     def *(expr:Expression): Expression = new *(this,expr)
@@ -75,23 +105,22 @@ object Tree extends App{
     def >=(expr:Expression): Expression = new >=(this,expr)
   }
 
-  case class *(left: Option[Expression],right: Option[Expression]) extends Expression
-  case class /(left: Option[Expression],right: Option[Expression]) extends Expression
-  case class +(left: Option[Expression],right: Option[Expression]) extends Expression
-  case class -(left: Option[Expression],right: Option[Expression]) extends Expression
-  case class :=(left: Option[Expression],right: Option[Expression]) extends Expression
-  case class :#(left: Option[Expression],right: Option[Expression]) extends Expression
-  case class <(left: Option[Expression],right: Option[Expression]) extends Expression
-  case class <=(left: Option[Expression],right: Option[Expression]) extends Expression
-  case class >(left: Option[Expression],right: Option[Expression]) extends Expression
-  case class >=(left: Option[Expression],right: Option[Expression]) extends Expression
+  case class *(override val left: Expression,override val right: Expression) extends Expression
+  case class /(override val left: Expression,override val right: Expression) extends Expression
+  case class +(override val left: Expression,override val right: Expression) extends Expression
+  case class -(override val left: Expression,override val right: Expression) extends Expression
+  case class :=(override val left: Expression,override val right: Expression) extends Expression
+  case class :#(override val left: Expression,override val right: Expression) extends Expression
+  case class <(override val left: Expression,override val right: Expression) extends Expression
+  case class <=(override val left: Expression,override val right: Expression) extends Expression
+  case class >(override val left: Expression,override val right: Expression)extends Expression
+  case class >=(override val left: Expression,override val right: Expression) extends Expression
   
   //IndexExpression  = integer | ConstIdent.
   trait IndexExpression
   
   //ConstIdent       = ident.
   trait ConstIdent extends IndexExpression
-  
   
   //ArrayType = ÕARRAYÕ Õ[Õ IndexExpression Õ]Õ ÕOFÕ Type.
   //  ArrayNode -> elem, Type
@@ -145,7 +174,7 @@ object Tree extends App{
   //   WhileStatement | RepeatStatement].
   //StatementSequence = Statement {Õ;Õ Statement}.
   trait Statement extends Tree[Statement]{
-    val next: Option[Statement]
+    val next: Statement = Nil
   }
   
   //Module           = ÕMODULEÕ ident Õ;Õ Declarations
@@ -157,21 +186,23 @@ object Tree extends App{
   // Module -> ident, Declrations, Statementsequence, ident 
   //Assignment        = ident Selector Õ:=Õ Expression
   case class Asssignment(ident:Ident,expression:Expression) extends Declarations  
+  case object Asssignment
   
   //ProcedureCall = ident Õ(Õ [ActualParameters] Õ)Õ.
-  case class ProcedureCall(ident:Ident,expression:Option[Expression] = None) extends Tree[ProcedureCall]
-   
+  case class ProcedureCall(ident:Ident,expression:Expression = Nil) extends Tree[ProcedureCall]
+  case object ProcedureCall
+  
   //IfStatement = ÕIFÕ Expression ÕTHENÕ StatementSequence
   //	{ÕELSIFÕ Expression ÕTHENÕ StatementSequence}
   //  	[ÕELSEÕ StatementSequence] ÕENDÕ.
-  case class IfStatement(condition: Statement, statement: Statement, ifStatement:IfStatement, alternatve: Statement,next:Option[Statement] = None) extends Statement
+  case class IfStatement(condition: Statement, statement: Statement, ifStatement:IfStatement, alternatve: Statement,override val next:Statement = Nil) extends Statement
   case object IfStatement
   
   //WhileStatement = ÕWHILEÕ Expression ÕDOÕ StatementSequence ÕENDÕ.
-  case class WhileStatement(condition: Expression, statement: Statement,next:Option[Statement] = None) extends Statement
+  case class WhileStatement(condition: Expression, statement: Statement,override val next:Statement = Nil) extends Statement
   case object WhileStatement
   
   //RepeatStatement = ÕREPEATÕ StatementSequence ÕUNTILÕ Expression.
-  case class RepeatStatement(statement: Statement, condition: Expression,next:Option[Statement] = None) extends Statement
+  case class RepeatStatement(statement: Statement, condition: Expression,override val next:Statement = Nil) extends Statement
   case object RepeatStatement
 }
