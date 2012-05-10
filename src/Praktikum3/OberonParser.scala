@@ -3,9 +3,8 @@ import scala.annotation.tailrec
 
 @tailrec
 object OberonParser extends App {
-  import Praktikum2._
   import Praktikum3.OberonScanner._
-//  import Praktikum3.Tree._
+  import Praktikum3.Tree._
   import Tree._
 
   val scanner = oberonScanner("src/Examples/NT/Module")
@@ -19,7 +18,7 @@ object OberonParser extends App {
     }
     m
   }
-  val sym = Tree(Option(Symbol("s", 1, 1)))
+  //  val sym = Tree(Option(Symbol("s", 1, 1)))
   trace(test(Module))
 
   /*
@@ -27,20 +26,20 @@ object OberonParser extends App {
    */
   // operators
   def mul = checkPrimitive(Token.mul)
-  def plus = checkPrimitiveTree(Token.plus)
-  def sub = checkPrimitiveTree(Token.sub)
+  def plus = checkPrimitiveValue(Token.plus)
+  def sub = checkPrimitiveValue(Token.sub)
   def div = checkPrimitive(Token.div)
-  def _def = checkPrimitiveTree(Token._def)
-  def equ = checkPrimitiveTree(Token.equ)
-  def sharp = checkPrimitiveTree(Token.sharp)
-  def smaller = checkPrimitiveTree(Token.smaller)
-  def smallereq = checkPrimitiveTree(Token.smallereq)
-  def bigger = checkPrimitiveTree(Token.bigger)
-  def biggereq = checkPrimitiveTree(Token.biggereq)
+  def _def = checkPrimitive(Token._def)
+  def equ = checkPrimitive(Token.equ)
+  def sharp = checkPrimitive(Token.sharp)
+  def smaller = checkPrimitive(Token.smaller)
+  def smallereq = checkPrimitive(Token.smallereq)
+  def bigger = checkPrimitive(Token.bigger)
+  def biggereq = checkPrimitive(Token.biggereq)
   // terminals with values
-  def ident = checkPrimitiveTree(Token.ident)
-  def string = checkPrimitiveTree(Token.string)
-  def integer = checkPrimitiveTree(Token.integer)
+  def ident = checkPrimitiveValue(Token.ident)
+  def string = checkPrimitiveValue(Token.string)
+  def integer = checkPrimitiveValue(Token.integer)
   // only syntax terminals (not allowed in AbstractSyntaxTree)
   def comma = checkPrimitive(Token.comma)
   def semicolon = checkPrimitive(Token.semicolon)
@@ -79,21 +78,21 @@ object OberonParser extends App {
    */
 
   //Selector         = {Õ.Õ ident | Õ[Õ Expression Õ]Õ}. // tested
-  def Selector: Tree[_] = {
+  def Selector: Tree.Expression = {
     trace("Selector")
     if (DOT) {
       inc
       val id = ident
-      if (id != Nil) {
+      if (id != None) {
         inc
-        Tree('Selector, ident, Selector)
+        Ident(ident.get, Selector)
       } else {
         error("Selector with ident after dot")
         Nil
       }
     } else if (edgeBracketOn) {
       inc
-      Tree('Selector, Expression, Selector)
+      Expression
     } else {
       // no error because its optional
       Nil
@@ -103,33 +102,33 @@ object OberonParser extends App {
   //Factor           = ident Selector | integer | string |
   //                    Read |
   //                   Õ(Õ Expression Õ)Õ. // tested
-  def Factor: Tree[_] = {
+  def Factor: Tree.Expression = {
     trace("Factor")
     val id = ident
     val int = integer
     val s = string
     if (id != Nil) {
       inc
-      Tree('Factor, id, Selector)
+      Ident(ident.get, Selector)
     } else if (int != Nil) {
       inc
-      Tree('Factor, int)
+      Integer(int.get)
     } else if (s != Nil) {
       inc
-      Tree('Factor, s)
+      Str(s.get)
     } else if (bracketOn) {
       inc
       val expr = Expression
       if (bracketOff) {
         inc
-        Tree('Factor, expr)
+        Expression
       } else {
         error("Factor ends with )")
         Nil
       }
     } else if (READ) {
       // no inc, because we look forward
-      Tree('Factor, Read)
+      Tree.Read(Read)
     } else {
       error("Factor with ident or integer or string or Read or Õ(Õ")
       Nil
@@ -137,12 +136,12 @@ object OberonParser extends App {
   }
 
   //Read             = READ [Prompt]. // tested
-  def Read = {
+  def Read: Tree.Expression  = {
     trace("Read")
     val r = READ
     if (r) {
       inc
-      Tree('Read, Prompt)
+      Prompt
     } else {
       error("Read with READ")
       Nil
@@ -150,12 +149,12 @@ object OberonParser extends App {
   }
 
   //Prompt           = string. // tested
-  def Prompt = {
+  def Prompt: Expression = {
     trace("Prompt")
     val s = string
-    if (s != Nil) {
+    if (s != None) {
       inc
-      Tree('string, s)
+      Tree.Prompt(Str(s.get))
     } else {
       error("Prompt with string")
       Nil
@@ -163,18 +162,18 @@ object OberonParser extends App {
   }
 
   //Term             = Factor {(Õ*Õ | Õ/Õ) Factor}. // tested
-  def Term = {
+  def Term: Tree.Expression = {
     trace("Term")
     val f = Factor
     if (f != Nil) {
-      Tree('Term, f, OptionalTerm)
+      OptionalTerm(f)
     } else {
       error("Term with Factor")
       Nil
     }
   }
 
-  def OptionalTerm: Tree[_] = {
+  def OptionalTerm(factor: Expression): Tree.Expression = {
     trace("OptionalTerm")
     val m = mul
     val d = div
@@ -182,7 +181,12 @@ object OberonParser extends App {
       inc
       val f = Factor
       if (f != Nil) {
-        Tree('Term, f, OptionalTerm)
+        if (m)
+          *(factor, OptionalTerm(f))
+        else if (d)
+          /(factor, OptionalTerm(f))
+        else
+          Nil
       } else {
         error("OptionalTerm with Factor after * or /")
         Nil
@@ -195,14 +199,14 @@ object OberonParser extends App {
 
   //SimpleExpression = [Õ-Õ] Term
   //                   {(Õ+Õ | Õ-Õ) Term}. // tested
-  def SimpleExpression = {
+  def SimpleExpression: Tree.Expression = {
     trace("SimpleExpression")
     val s = sub
     if (s != Nil) {
       inc
       val t = Term
       if (t != Nil) {
-        Tree('SimpleExpression, s, Tree('SimpleExpression, t, OptionalSimpleExpression))
+        Neg(t)
       } else {
         error("SimpleExpression with Term")
         Nil
@@ -210,7 +214,7 @@ object OberonParser extends App {
     } else {
       val t = Term
       if (t != Nil) {
-        Tree('SimpleExpression, t, OptionalSimpleExpression)
+        OptionalSimpleExpression(t)
       } else {
         error("SimpleExpression with Term")
         Nil
@@ -218,17 +222,18 @@ object OberonParser extends App {
     }
   }
 
-  def OptionalSimpleExpression: Tree[_] = {
+  def OptionalSimpleExpression(expr: Expression): Tree.Expression = {
     trace("OptionalSimpleExpression")
     val p = plus
     val s = sub
     if (p != Nil) {
       inc
-      Tree('SimpleExpression, p, Tree('SimpleExpression, Term, OptionalSimpleExpression))
+      expr + OptionalSimpleExpression(Term)
+      //      Tree('SimpleExpression, p, Tree('SimpleExpression, Term, OptionalSimpleExpression))
     }
     if (s != Nil) {
       inc
-      Tree('SimpleExpression, s, Tree('SimpleExpression, Term, OptionalSimpleExpression))
+      expr * OptionalSimpleExpression(Term)
     } else {
       // no error because its optional
       Nil
@@ -239,46 +244,47 @@ object OberonParser extends App {
   //                   [(Õ=Õ | Õ#Õ | Õ<Õ |
   //                     Õ<=Õ | Õ>Õ | Õ>=Õ)
   //                    SimpleExpression]. // tested
-  def Expression = {
+  def Expression: Tree.Expression = {
     trace("Expression")
     val s = SimpleExpression
     if (s != Nil) {
-      Tree('Expression, s, OptionalExpression)
+      OptionalExpression(s)
     } else {
       error("Expression with SimpleExpression")
       Nil
     }
   }
 
-  def OptionalExpression: Tree[_] = {
+  def OptionalExpression(simple: Expression): Tree.Expression = {
     trace("OptionalExpression")
     val e = equ
-    val s = sharp
+    val sh = sharp
     val smal = smaller
     val smaleq = smallereq
     val big = bigger
     val bigeq = biggereq
-    var op: Tree[_] = Nil
-    if (e != Nil) {
-      op = e
-    } else if (s != Nil) {
-      op = s
-    } else if (smal != Nil) {
-      op = smal
-    } else if (smaleq != Nil) {
-      op = smaleq
-    } else if (big != Nil) {
-      op = big
-    } else if (bigeq != Nil) {
-      op = bigeq
-    }
-    if (op != Nil) {
+    if (e || sh || smal || smaleq || big || bigeq) {
       inc
       val s = SimpleExpression
       if (s != Nil) {
-        Tree('Expression, op, OptionalExpression)
+        if (e) {
+          simple := s
+        } else if (sh) {
+          simple :# s
+        } else if (smal) {
+          simple < s
+        } else if (smaleq) {
+          simple <= s
+        } else if (big) {
+          simple > s
+        } else if (bigeq) {
+          simple >= s
+        }
+        else{
+          Nil
+        }
       } else {
-        error("Expression with OptionalExpression after " + op.value)
+        error("Expression with OptionalExpression after operation")
         Nil
       }
     } else {
@@ -288,15 +294,16 @@ object OberonParser extends App {
   }
 
   //IndexExpression  = integer | ConstIdent. // tested
-  def IndexExpression = {
+  def IndexExpression: Tree.IndexExpression = {
     trace("IndexExpression")
     val i = integer
     if (i != Nil) {
       inc
-      Tree('IndexExpression, i)
+      Tree.Integer(i.get)
+      Nil
     } else if (ident != Nil) {
       // no inc because we look forward
-      Tree('IndexExpression, ConstIdent)
+      ConstIdent
     } else {
       error("IndexExpression with integer or ConstIdent")
       Nil
@@ -304,12 +311,13 @@ object OberonParser extends App {
   }
 
   //ConstIdent       = ident.  // tested
-  def ConstIdent = {
+  def ConstIdent: Tree.ConstIdent = {
     trace("ConstIdent")
     val id = ident
     if (id != Nil) {
       inc
-      Tree('ConsIdent, ident)
+      Ident(ident.get)
+      Nil
     } else {
       error("ConstIdent with ident")
       Nil
@@ -317,26 +325,26 @@ object OberonParser extends App {
   }
 
   //IdentList = ident {Õ,Õ ident}. // tested
-  def IdentList = {
+  def IdentList:Tree[Ident] = {
     trace("IdentList")
     val id = ident
-    if (id != Nil) {
+    if (!id.isEmpty) {
       inc
-      Tree('Identlist, id, OptionalIdentList)
+      Ident(id.get,OptionalIdentList)
     } else {
       error("IdentList with ident")
       Nil
     }
   }
 
-  def OptionalIdentList: Tree[_] = {
+  def OptionalIdentList: Tree.Expression = {
     trace("OptionalIdentList")
     if (comma) {
       inc
       val id = ident
       if (id != Nil) {
         inc
-        Tree('IdentList, OptionalIdentList)
+        Ident(id.get,OptionalIdentList)
       } else
         Nil
     } else {
@@ -347,7 +355,7 @@ object OberonParser extends App {
   }
 
   //ArrayType = ÕARRAYÕ Õ[Õ IndexExpression Õ]Õ ÕOFÕ Type. //tested
-  def ArrayType: Tree[_] = {
+  def ArrayType: Tree.Type = {
     trace("ArrayType")
     if (ARRAY) {
       inc
@@ -360,7 +368,7 @@ object OberonParser extends App {
             inc
             val t = Type
             if (t != Nil) {
-              Tree('ArrayType, i, t)
+              Tree.ArrayType(i, t)
             } else {
               error("Arraytype with Type after OF")
               Nil
@@ -384,7 +392,7 @@ object OberonParser extends App {
   }
 
   //FieldList = [IdentList Õ:Õ Type]. // tested
-  def FieldList: Tree[_] = {
+  def FieldList: Tree.Field = {
     trace("FieldList")
     if (ident != Nil) {
       val idl = IdentList
@@ -393,7 +401,7 @@ object OberonParser extends App {
           inc
           val t = Type
           if (t != Nil) {
-            Tree('FieldList, idl, t)
+            FieldNode(idl, t)
           } else {
             error("Identlist with Type after :")
             Nil
@@ -413,7 +421,7 @@ object OberonParser extends App {
   }
 
   //RecordType = ÕRECORDÕ FieldList {Õ;Õ FieldList} ÕENDÕ.
-  def RecordType: Tree[_] = {
+  def RecordType: Tree.Type = {
     trace("RecordType")
     if (RECORD) {
       inc
@@ -422,7 +430,7 @@ object OberonParser extends App {
         val ofl = OptionalFieldList
         if (END) {
           inc
-          Tree('RecordType, ofl)
+          Tree.RecordType(ofl)
         } else {
           error("RecordType with END")
           Nil
@@ -437,13 +445,13 @@ object OberonParser extends App {
     }
   }
 
-  def OptionalFieldList: Tree[_] = {
+  def OptionalFieldList: Tree.FieldList = {
     trace("OptionalFieldList")
     if (semicolon) {
       inc
       val f = FieldList
       if (f != Nil) {
-        Tree('Fieldlist, FieldList, OptionalFieldList)
+        FieldListNode(FieldList, OptionalFieldList)
       } else
         error("OptionalFieldList with FieldList after ;")
       Nil
@@ -454,18 +462,18 @@ object OberonParser extends App {
   }
 
   //Type = ident | ArrayType | RecordType. // tested
-  def Type: Tree[_] = {
+  def Type: Tree.Type = {
     trace("Type")
     val id = ident
     val arr = ARRAY
     val rec = RECORD
     if (id != Nil) {
       inc
-      Tree('Type, id)
+      Tree.Ident(id.get)
     } else if (arr) {
-      Tree('Type, ArrayType)
+      ArrayType
     } else if (RECORD) {
-      Tree('Type, RecordType)
+      RecordType
     } else {
       error("Type with ident or ARRAY or Record")
       Nil
@@ -473,7 +481,7 @@ object OberonParser extends App {
   }
 
   //FPSection = [ÕVARÕ] IdentList Õ:Õ Type. // tested
-  def FPSection = {
+  def FPSection: FormalParameters = {
     trace("FPSection")
     if (VAR) {
       inc
@@ -483,7 +491,7 @@ object OberonParser extends App {
       inc
       val t = Type
       if (t != Nil) {
-        Tree('FPSection, t)
+        Tree.FPSection(idl,t)
       } else {
         error("FPSection with Type after :")
         Nil
@@ -495,24 +503,24 @@ object OberonParser extends App {
   }
 
   //FormalParameters = FPSection {Õ;Õ FPSection}. // tested
-  def FormalParameters = {
+  def FormalParameters: FormalParameters = {
     trace("FormalParamters")
     val fps = FPSection
     if (fps != Nil) {
-      Tree('FormalParameters, fps, OptionalFormalParameters)
+      Tree.FPSection(fps.identFPSection,fps._typeFPSection,OptionalFormalParameters)
     } else {
       error("FormalParameters with FPSection")
       Nil
     }
   }
 
-  def OptionalFormalParameters: Tree[_] = {
+  def OptionalFormalParameters: FormalParameters  = {
     trace("OptionalFPSection")
     if (semicolon) {
       inc
       val fps = FPSection
       if (fps != Nil) {
-        Tree('FormalParameters, fps, OptionalFormalParameters)
+        Tree.FPSection(fps.identFPSection,fps._typeFPSection,OptionalFormalParameters)
       } else {
         error("OptionalFormalParameters with FPSection after ;")
         Nil
@@ -524,20 +532,20 @@ object OberonParser extends App {
   }
 
   //ProcedureHeading = ÕPROCEDUREÕ ident Õ(Õ [FormalParameters] Õ)Õ. // tested
-  def ProcedureHeading = {
+  def ProcedureHeading: Tree[ProcedureHeading] = {
     trace("ProcedureHeading")
     if (PROCEDURE) {
       inc
       val id = ident
-      if (id != Nil) {
+      if (id != None) {
         inc
         if (bracketOn) {
           inc
           if (bracketOff) {
             inc
-            Tree('ProcedureHeading, id)
+            Tree.ProcedureHeading(Ident(id.get))
           } else {
-            Tree('ProcedureHeading, id, FormalParameters)
+            Tree.ProcedureHeading(Ident(id.get),FormalParameters)
           }
         } else {
           error("ProcedureHeading with ( after ident")
@@ -554,7 +562,7 @@ object OberonParser extends App {
   }
 
   //ProcedureBody    = Declarations ÕBEGINÕ StatementSequence ÕENDÕ // tested
-  def ProcedureBody = {
+  def ProcedureBody: Tree[ProcedureBody] = {
     trace("ProcedureBody")
     val decl = Declarations
     if (decl != Nil) {
@@ -564,7 +572,7 @@ object OberonParser extends App {
         if (sts != Nil) {
           if (END) {
             inc
-            Tree('ProcedureBody, sts)
+            Tree.ProcedureBody(decl,sts)
           } else {
             error("ProcedureBody with END")
             Nil
@@ -584,7 +592,7 @@ object OberonParser extends App {
   }
 
   //ProcedureDeclaration = ProcedureHeading Õ;Õ ProcedureBody ident.
-  def ProcedureDeclaration = {
+  def ProcedureDeclaration: Tree.ProcedureDeclaration = {
     trace("ProcedureDeclaration")
     val ph = ProcedureHeading
     if (ph != Nil) {
@@ -595,10 +603,10 @@ object OberonParser extends App {
           val id = ident
           if (id != Nil) {
             inc
-            Tree('ProcedureDeclaration, ph, Tree('Body, pb, id))
+            Tree.ProcedureDeclarationNode(ph, pb, Ident(id.get))
           } else {
             error("ProcedureDeclaration with ident")
-            Nil
+            Nil 
           }
         } else {
           error("ProcedureDeclaration with ProcedureBody")
@@ -621,13 +629,13 @@ object OberonParser extends App {
   //                   [ÕVARÕ IdentList Õ:Õ Type Õ;Õ
   //                          {IdentList Õ:Õ Type Õ;Õ}]
   //                   {ProcedureDeclaration Õ;Õ}. // tested
-  def Declarations: Tree[_] = {
+  def Declarations: Tree.Declarations = {
     trace("Declarations")
     if (CONST) {
       inc
       val d = OptionalConstDeclarations
       if (d != Nil) {
-        Tree('Declarations, d, Tree('Declations, Declarations, OptionalProcedureDeclarations))
+        d
       } else {
         error("Declarations with OptionalConstDeclrations")
         Nil
@@ -636,7 +644,7 @@ object OberonParser extends App {
       inc
       val d = OptionalTypeDeclarations
       if (d != Nil) {
-        Tree('Declarations, d, Tree('Declations, Declarations, OptionalProcedureDeclarations))
+        d
       } else {
         error("Declarations with OptionalTypeDeclrations")
         Nil
@@ -645,7 +653,7 @@ object OberonParser extends App {
       inc
       val d = OptionalVarDeclarations
       if (d != Nil) {
-        Tree('Declarations, d, Tree('Declations, Declarations, OptionalProcedureDeclarations))
+       d
       } else {
         error("Declarations with OptionalVarDeclrations")
         Nil
@@ -656,7 +664,7 @@ object OberonParser extends App {
     }
   }
 
-  def OptionalConstDeclarations: Tree[_] = {
+  def OptionalConstDeclarations: Tree.Declarations = {
     val id = ident
     if (id != Nil) {
       inc
@@ -666,7 +674,7 @@ object OberonParser extends App {
         if (expr != Nil) {
           if (semicolon) {
             inc
-            Tree('Declarations, id, Tree('ConstDeclrations, expr, OptionalConstDeclarations))
+            Tree.ConstDeclarations(Ident(id.get), expr, OptionalConstDeclarations)
           } else {
             error("CONST Declarations with ; after Expression")
             Nil
@@ -685,7 +693,7 @@ object OberonParser extends App {
     }
   }
 
-  def OptionalTypeDeclarations: Tree[_] = {
+  def OptionalTypeDeclarations: Tree.Declarations = {
     val id = ident
     if (id != Nil) {
       inc
@@ -695,7 +703,7 @@ object OberonParser extends App {
         if (t != Nil) {
           if (semicolon) {
             inc
-            Tree('Declarations, id, Tree('TypeDeclrations, t, OptionalTypeDeclarations))
+            Tree.TypeDeclarations(Ident(id.get), t, OptionalTypeDeclarations)
           } else {
             error("TYPE Declarations with ; after Type")
             Nil
@@ -714,7 +722,7 @@ object OberonParser extends App {
     }
   }
 
-  def OptionalVarDeclarations: Tree[_] = {
+  def OptionalVarDeclarations: Tree.Declarations = {
     val id = ident
     if (id != Nil) {
       val idl = IdentList
@@ -724,7 +732,7 @@ object OberonParser extends App {
         if (t != Nil) {
           if (semicolon) {
             inc
-            Tree('Declarations, idl, Tree('VarDeclrations, t, OptionalVarDeclarations))
+            Tree.VarDeclarations(idl, t, OptionalVarDeclarations)
           } else {
             error("VAR Declarations with ; after Type")
             Nil
@@ -743,13 +751,13 @@ object OberonParser extends App {
     }
   }
 
-  def OptionalProcedureDeclarations: Tree[_] = {
+  def OptionalProcedureDeclarations: Tree.ProcedureDeclaration = {
     if (PROCEDURE) {
-      val p = ProcedureDeclaration
+      val p: ProcedureDeclaration = ProcedureDeclaration
       if (p != Nil) {
         if (semicolon) {
           inc
-          Tree('OptionalProcedureDeclarations, p, OptionalProcedureDeclarations)
+          Tree.ProcedureDeclarationNode(p.procedureHeading,p.procedureBody,p.ident, OptionalProcedureDeclarations)
         } else {
           error("OptionalProcedureDeclarations with ; after ProcedureDeclaration")
           Nil
@@ -767,12 +775,12 @@ object OberonParser extends App {
   //Module           = ÕMODULEÕ ident Õ;Õ Declarations
   //                   ÕBEGINÕ StatementSequence
   //                   ÕENDÕ ident Õ.Õ. // tested
-  def Module = {
+  def Module: Tree[Module] = {
     trace("Module")
     if (MODULE) {
       inc
       val id = ident
-      if (id != Nil) {
+      if (id != None) {
         inc
         if (semicolon) {
           inc
@@ -784,11 +792,11 @@ object OberonParser extends App {
               if (END) {
                 inc
                 val id2 = ident
-                if (id2 != Nil) {
+                if (id2 != None) {
                   inc
                   if (DOT) {
                     inc
-                    Tree('Module, id, Tree('StatementSequence,sts, id2))
+                    Tree.Module(Ident(id.get), d,sts, Ident(id2.get))
                   } else {
                     error("Module with . after ident")
                     Nil
@@ -825,15 +833,15 @@ object OberonParser extends App {
   }
 
   //Assignment        = ident Selector Õ:=Õ Expression. // tested
-  def Assignment(id: Tree[_]) = {
+  def Assignment(id: Option[Symbol]): Statement = {
     trace("Assignment")
-    if (id != Nil) {
+    if (id != None) {
       val s = Selector
       if (_def != Nil) {
         inc
         val expr = Expression
         if (expr != Nil) {
-          Tree('Assignment, s, expr)
+          Tree.Assignment(Ident(id.get), s, expr)
         } else {
           error("Assignment with Expression after Selector")
           Nil
@@ -849,23 +857,23 @@ object OberonParser extends App {
   }
 
   //ActualParameters  = Expression {Õ,Õ Expression}. // tested
-  def ActualParameters = {
+  def ActualParameters: Tree[ActualParameters] = {
     trace("ActualParameters")
     val expr = Expression
     if (expr != Nil) {
-      Tree('ActualParameters, expr, OptionalExpresion)
+      Tree.ActualParameters(expr, OptionalActualParameters)
     } else {
       error("ActualParameters with Expression")
       Nil
     }
   }
 
-  def OptionalExpresion: Tree[_] = {
+  def OptionalActualParameters: Tree[ActualParameters] = {
     if (comma) {
       inc
       val expr = Expression
       if (expr != Nil) {
-        Tree('Expression, expr, OptionalExpresion)
+        Tree.ActualParameters(expr, OptionalActualParameters)
       } else {
         error("OptionalExpresion with Expression")
         Nil
@@ -877,19 +885,19 @@ object OberonParser extends App {
   }
 
   //ProcedureCall = ident Õ(Õ [ActualParameters] Õ)Õ. // tested
-  def ProcedureCall(id: Tree[_]) = {
+  def ProcedureCall(id: Option[Symbol]): Statement = {
     trace("ProcedureCall")
-    if (id != Nil) {
+    if (!id.isEmpty) {
       if (bracketOn) {
         inc
         if (bracketOff) {
           inc
-          Tree('ProcedureCall, id)
+          Tree.ProcedureCall(Ident(id.get))
         } else {
           val a = ActualParameters;
           if (bracketOff) {
             inc
-            Tree('ProcedureCall, id, a)
+            Tree.ProcedureCall(Ident(id.get), a)
           } else {
             error("ProcedureCall ends with )")
             Nil
@@ -908,7 +916,7 @@ object OberonParser extends App {
   //IfStatement = ÕIFÕ Expression ÕTHENÕ StatementSequence
   //	{ÕELSIFÕ Expression ÕTHENÕ StatementSequence}
   //  	[ÕELSEÕ StatementSequence] ÕENDÕ. // tested
-  def IfStatement: Tree[_] = {
+  def IfStatement: Statement = {
     trace("IfStatement")
     if (IF) {
       inc
@@ -925,7 +933,7 @@ object OberonParser extends App {
               if (sts2 != Nil) {
                 if (END) {
                   inc
-                  Tree('IfStatement, expr, Tree('StatementSequence, sts, Tree('Else, elseif, sts2)))
+                  Tree.IfStatement(expr, sts, elseif, sts2)
                 } else {
                   error("IfStatement with END after StatementSequence")
                   Nil
@@ -937,7 +945,7 @@ object OberonParser extends App {
             } else {
               if (END) {
                 inc
-                Tree('IfStatement, expr, Tree('StatementSequence, sts, Tree('Else, elseif)))
+                Tree.IfStatement(expr, sts, elseif)
               } else {
                 error("IfStatement with END after StatementSequence")
                 Nil
@@ -961,7 +969,7 @@ object OberonParser extends App {
     }
   }
 
-  def OptionalELSIF: Tree[_] = {
+  def OptionalELSIF: Tree[IfStatement] = {
     if (ELSEIF) {
       inc
       val expr = Expression
@@ -970,7 +978,7 @@ object OberonParser extends App {
           inc
           val sts = StatementSequence
           if (sts != Nil) {
-            Tree('ELSIF, expr, Tree('StatementSequence, StatementSequence, OptionalELSIF))
+            Tree.IfStatement(expr, sts, OptionalELSIF)
           } else {
             error("OptionalELSIF with StatementSequence after THEN")
             Nil
@@ -990,7 +998,7 @@ object OberonParser extends App {
   }
 
   //WhileStatement = ÕWHILEÕ Expression ÕDOÕ StatementSequence ÕENDÕ. // tested
-  def WhileStatement = {
+  def WhileStatement: Statement = {
     trace("WhileStatement")
     if (WHILE) {
       inc
@@ -1002,7 +1010,7 @@ object OberonParser extends App {
           if (sts != Nil) {
             if (END) {
               inc
-              Tree('WhileStatement, expr, sts)
+              Tree.WhileStatement(expr, sts)
             } else {
               error("WhileStatement with END after StatementSequence")
               Nil
@@ -1026,7 +1034,7 @@ object OberonParser extends App {
   }
 
   //RepeatStatement = ÕREPEATÕ StatementSequence ÕUNTILÕ Expression. // tested
-  def RepeatStatement = {
+  def RepeatStatement: Statement = {
     trace("RepeatStatement")
     if (REPEAT) {
       inc
@@ -1034,7 +1042,7 @@ object OberonParser extends App {
       if (sts != Nil) {
         if (UNTIL) {
           inc
-          Tree('RepeatStatement, sts, Expression)
+          Tree.RepeatStatement(sts, Expression)
         } else {
           error("RepeatStatement with UNTIL after StatementSequence")
           Nil
@@ -1052,7 +1060,7 @@ object OberonParser extends App {
   //Statement = [Assignment | ProcedureCall |
   //   IfStatement | ÕPRINTÕ Expression |
   //   WhileStatement | RepeatStatement]. // tested
-  def Statement: Tree[_] = {
+  def Statement: Statement= {
     trace("Statement")
     val assignOrProccall = ident
     val ifst = IF
@@ -1064,22 +1072,22 @@ object OberonParser extends App {
       val id = assignOrProccall
       inc
       if (bracketOn) {
-        Tree('Statement, ProcedureCall(id))
+        ProcedureCall(id)
       } else if (_def != Nil) {
-        Tree('Statement, Assignment(id))
+        Assignment(id)
       } else {
         error("Statement with ( or := after ident")
         Nil
       }
     } else if (ifst) {
-      Tree('Statement, IfStatement)
+      IfStatement
     } else if (p) {
       inc
-      Tree('Statement, Expression)
+      Expression
     } else if (whi) {
-      Tree('Statement, WhileStatement)
+      WhileStatement
     } else if (r) {
-      Tree('Statement, RepeatStatement)
+      RepeatStatement
     } else {
       // no error because its optional
       Nil
@@ -1087,17 +1095,17 @@ object OberonParser extends App {
   }
 
   //StatementSequence = Statement {Õ;Õ Statement}. // tested
-  def StatementSequence: Tree[_] = {
+  def StatementSequence: Statement = {
     trace("StatementSequence")
-    Tree('StatementSequence, Statement, OptionalStatementSequence)
+    Tree.StatementSequence(Statement,OptionalStatementSequence)
   }
 
-  def OptionalStatementSequence: Tree[_] = {
+  def OptionalStatementSequence: Tree[StatementSequence] = {
     if (semicolon) {
       inc
       val sts = Statement
       if (sts != Nil) {
-        Tree('StatementSequence, sts, OptionalStatementSequence)
+        Tree.StatementSequence(sts, OptionalStatementSequence)
       } else {
         error("StatementSequence with another StatementSequence after ;")
         Nil
@@ -1132,7 +1140,7 @@ object OberonParser extends App {
 
   def urparserWithBlanks = {
     while (!scanner.isEOF) {
-      val s: Symbol = scanner.next_token()
+      val s: Symbol = scanner.next_token() 
       if (!scanner.isEOF) {
         println(s.toLongString);
       }
@@ -1159,14 +1167,14 @@ object OberonParser extends App {
     }
   }
 
-  def checkPrimitiveTree(token: String) = {
+  def checkPrimitiveValue(token: String) = {
     if (current.isEmpty)
-      Nil
+      None
     else if (current.get.token == token) {
       trace(token + " " + current.get.value.getOrElse(""))
-      Tree(current)
+      current
     } else {
-      Nil
+      None
     }
   }
 

@@ -1,12 +1,12 @@
 package Praktikum3
-import Praktikum3.Tree.Ident
+import Praktikum3.Tree._
 
 object Declarations extends App{
 
   case class SymbolTable(map: Map[Ident, Descriptor])
   case object SymbolTable
   
-  val id = Ident(Symbol("",1,1))
+  val id = Tree.Ident(Symbol("",1,1))
 
 //  val id2 = Ident(Symbol("a",2,2))
   val b = Bool(false)
