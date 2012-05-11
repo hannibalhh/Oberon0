@@ -57,7 +57,7 @@ object Tree extends App{
     override def print(n: Int): String = ""
   }
   
-  case class Integer(int: Symbol) extends Expression  // with IndexExpression
+  case class Integer(int: Symbol) extends Tree[Integer] with Expression with IndexExpression
   case object Integer
   
    //Selector         = {Õ.Õ ident | Õ[Õ Expression Õ]Õ}.
@@ -65,7 +65,7 @@ object Tree extends App{
 //    val ident: Option[Symbol] = None
 //    val optional:Expression = Nil
 //  }
-  case class Ident(identIdent: Symbol,optionalIdent:Expression = Nil) extends Tree[Ident] with Expression with Type with Declarations with IndexExpression
+  case class Ident(identIdent: Symbol,optionalIdent:Expression = Nil) extends Tree[Ident] with Expression with Type with Declarations with ConstIdent
   case object Ident
   
   // string 		 = ...
