@@ -7,7 +7,7 @@ object OberonParser extends App {
   import Praktikum3.Tree._
   import Tree._
 
-  val scanner = oberonScanner("src/Examples/NT/RecordType")
+  val scanner = oberonScanner("src/Examples/NT/WhileStatement")
   var current = next
 
   def parser = {
@@ -18,8 +18,9 @@ object OberonParser extends App {
     }
     m
   }
-    val sym = Some(Symbol("",1,1))
-  trace("Tree\n " + test(RecordType))
+    
+  val sym = Some(Symbol("",1,1))
+  trace("Tree:\n " + test(WhileStatement))
 
   /*
    *  terminals
@@ -431,12 +432,11 @@ object OberonParser extends App {
     trace("RecordType")
     if (RECORD) {
       inc
-      val f = FieldList
+      val f = FieldListNode(FieldList, OptionalFieldList)
       if (f != Nil) {
-        val ofl = OptionalFieldList
         if (END) {
           inc
-          Tree.RecordType(ofl)
+          Tree.RecordType(f)
         } else {
           error("RecordType with END")
           Nil
@@ -457,7 +457,7 @@ object OberonParser extends App {
       inc
       val f = FieldList
       if (f != Nil) {
-        FieldListNode(FieldList, OptionalFieldList)
+        FieldListNode(f, OptionalFieldList)
       } else
         error("OptionalFieldList with FieldList after ;")
       Nil
