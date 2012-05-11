@@ -7,7 +7,7 @@ object OberonParser extends App {
   import Praktikum3.Tree._
   import Tree._
 
-  val scanner = oberonScanner("src/Examples/NT/Factor")
+  val scanner = oberonScanner("src/Examples/NT/RecordType")
   var current = next
 
   def parser = {
@@ -18,8 +18,8 @@ object OberonParser extends App {
     }
     m
   }
-  //  val sym = Tree(Option(Symbol("s", 1, 1)))
-  trace("Tree\n " + test(Factor))
+    val sym = Some(Symbol("",1,1))
+  trace("Tree\n " + test(RecordType))
 
   /*
    *  terminals
@@ -79,7 +79,7 @@ object OberonParser extends App {
 
   //Selector         = {Õ.Õ ident | Õ[Õ Expression Õ]Õ}. // tested
   def Selector: Tree.Expression = {
-    trace("Selector")   
+    trace("Selector")
     if (DOT) {
       inc
       val id = ident
@@ -235,8 +235,7 @@ object OberonParser extends App {
       inc
       expr + OptionalSimpleExpression(Term)
       //      Tree('SimpleExpression, p, Tree('SimpleExpression, Term, OptionalSimpleExpression))
-    }
-    else if (s) {
+    } else if (s) {
       inc
       expr - OptionalSimpleExpression(Term)
     } else {
@@ -293,7 +292,7 @@ object OberonParser extends App {
       }
     } else {
       // no error because its optional
-      Nil
+      simple
     }
   }
 
@@ -304,7 +303,6 @@ object OberonParser extends App {
     if (i.isDefined) {
       inc
       Tree.Integer(i.get)
-      Nil
     } else if (ident != Nil) {
       // no inc because we look forward
       ConstIdent
@@ -320,8 +318,7 @@ object OberonParser extends App {
     val id = ident
     if (id.isDefined) {
       inc
-      Ident(ident.get)
-      Nil
+      Ident(id.get)
     } else {
       error("ConstIdent with ident")
       Nil
@@ -358,7 +355,7 @@ object OberonParser extends App {
 
   }
 
-  //ArrayType = ÕARRAYÕ Õ[Õ IndexExpression Õ]Õ ÕOFÕ Type. //tested
+  //ArrayType = ÕARRAYÕ Õ[Õ IndexExpression Õ]Õ ÕOFÕ Type. // 
   def ArrayType: Tree.Type = {
     trace("ArrayType")
     if (ARRAY) {
@@ -366,27 +363,32 @@ object OberonParser extends App {
       if (edgeBracketOn) {
         inc
         val i = IndexExpression
-        if (edgeBracketOff) {
-          inc
-          if (OF) {
+        if (i != Nil) {
+          if (edgeBracketOff) {
             inc
-            val t = Type
-            if (t != Nil) {
-              Tree.ArrayType(i, t)
+            if (OF) {
+              inc
+              val t = Type
+              if (t != Nil) {
+                Tree.ArrayType(i, t)
+              } else {
+                error("Arraytype with Type after OF")
+                Nil
+              }
             } else {
-              error("Arraytype with Type after OF")
+              error("Arraytype with OF after ]")
               Nil
             }
           } else {
-            error("Arraytype with OF after }")
+            error("Arraytype with ] after IndexExpression")
             Nil
           }
         } else {
-          error("Arraytype with } after IndexExpression")
+          error("Arraytype with IndexExpression after [")
           Nil
         }
       } else {
-        error("Arraytype with { after ARRAY")
+        error("Arraytype with [ after ARRAY")
         Nil
       }
     } else {
@@ -693,7 +695,7 @@ object OberonParser extends App {
       }
     } else {
       // no error because its optional
-      Nil
+      Declarations
     }
   }
 
@@ -722,7 +724,7 @@ object OberonParser extends App {
       }
     } else {
       // no error because its optional
-      Nil
+      Declarations
     }
   }
 
@@ -751,7 +753,7 @@ object OberonParser extends App {
       }
     } else {
       // no error because its optional
-      Nil
+      Declarations
     }
   }
 
@@ -1071,7 +1073,7 @@ object OberonParser extends App {
     val p = PRINT
     val whi = WHILE
     val r = REPEAT
-    if (assignOrProccall != Nil) {
+    if (assignOrProccall.isDefined) {
       // we have to look two symbols forward
       val id = assignOrProccall
       inc

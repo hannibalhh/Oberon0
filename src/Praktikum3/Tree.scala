@@ -13,7 +13,7 @@ object Tree extends App{
               case "$less" => "<"
               case "$greater" => ">"
               case "$greater$eq" => ">="            
-              case "colon$eq" => ":="
+              case "$colon$eq" => ":="
               case "$plus" => "+"
               case "$minus" => "-"
               case "$times" => "*"
