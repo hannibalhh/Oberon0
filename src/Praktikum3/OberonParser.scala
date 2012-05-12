@@ -7,7 +7,7 @@ object OberonParser extends App {
   import Praktikum3.Tree._
   import Tree._
 
-  val scanner = oberonScanner("src/Examples/NT/WhileStatement")
+  val scanner = oberonScanner("src/Examples/NT/Module")
   var current = next
 
   def parser = {
@@ -20,7 +20,7 @@ object OberonParser extends App {
   }
     
   val sym = Some(Symbol("",1,1))
-  trace("Tree:\n " + test(WhileStatement))
+  trace("Tree:\n " + test(Module))
 
   /*
    *  terminals
