@@ -1,23 +1,25 @@
-package Praktikum3
+package Praktikum3.Memory
 import Praktikum3.Tree._
 import scala.actors.Actor
 
 object Declarations extends Actor {
 
   def act {
-    receive {
-      case a: IntConst => println(a)
-      case b: Var => println(b)
-      case c: Proc => println(c)
-      case d: Array => println(d)
-      case e: Record => println(e)
-      case f: Integer => println(f)
-      case g: Str => println(g)
-      case h: Bool => println(h)
-      case _ => act
+    loop {
+      receive {
+        case a: IntConst => println(a)
+        case b: Var => println(b)
+        case c: Proc => println(c)
+        case d: Array => println(d)
+        case e: Record => println(e)
+        case f: Integer => println(f)
+        case g: Str => println(g)
+        case h: Bool => println(h)
+        case 'Stop => exit 
+        case x => println("Invalid Message: " + x)
+      }
     }
   }
-  
   case class SymbolTable(map: Map[Ident, Descriptor])
   case object SymbolTable
   case class IntConst(intval: Int) extends Descriptor
@@ -38,8 +40,8 @@ object Declarations extends Actor {
   case class Integer(int: Int) extends SimpleType
   case class Str(string: String) extends SimpleType
   case class Bool(bool: Boolean) extends SimpleType
-  
-    trait Descriptor {
+
+  trait Descriptor {
     def print(n: Int): String = {
       def after$(s: String) = {
         val i = s.indexOf("$")

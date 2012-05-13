@@ -1,56 +1,6 @@
 package Praktikum3
 
 object Tree extends App{
-
-  sealed trait Tree[+T] {
-    
-    def print(n: Int): String = {
-      def after$(s:String) = {
-        val i = s.indexOf("$")
-        if (i > 0){
-            s.substring(s.indexOf("$")+1) match {
-              case "$less$eq" => "<="
-              case "$less" => "<"
-              case "$greater" => ">"
-              case "$greater$eq" => ">="            
-              case "$colon$eq" => ":="
-              case "$plus" => "+"
-              case "$minus" => "-"
-              case "$times" => "*"
-              case "$div" => "/"
-              case x => x
-            }            
-        }    
-        else
-        	s
-      }
-      def ->(value: String,m:Int = n): String = "   "* m + after$(value) + "\n" 
-      val c = this.getClass()
-      var s = -> (c.getName) 
-      for(i<-c.getDeclaredFields()){   
-        val rawClass = i.getType.getEnclosingClass()
-        if (rawClass != null && rawClass.getName().contains("Tree")){        
-            i.setAccessible(true)
-        	val o:Tree[_] = i.get(this).asInstanceOf[Tree[_]] 
-            val p = o.print(n+1)
-            if (!p.isEmpty()){
-                s += ->(p,n+1)
-            }
-        }
-        else{
-            i.setAccessible(true)
-            s += -> (i.get(this).toString,n+2)
-        }
-      }
-      return s
-    }
-    override def toString = "AbstractSyntaxTree:\n" + print(0)
-//	  def compile
-  }
-  
-  val id = Ident(Symbol("blub",1,1))
-  val foo = id > (id := (id + id))
-  println(foo)
   
   case object Nil extends Tree[Nothing] with Expression with Statement with Declarations with FormalParameters with ConstIdent with Type with Field with FieldList with ProcedureDeclaration{
     override def toString = "."
@@ -61,19 +11,12 @@ object Tree extends App{
   case object Integer
   
    //Selector         = {Õ.Õ ident | Õ[Õ Expression Õ]Õ}.
-//  trait Ident extends Expression  {
-//    val ident: Option[Symbol] = None
-//    val optional:Expression = Nil
-//  }
   case class Ident(identIdent: Symbol,optionalIdent:Expression = Nil) extends Tree[Ident] with Expression with Type with Declarations with ConstIdent
   case object Ident
   
   // string 		 = ...
   case class Str(string: Symbol) extends Expression 
   case object Str
-  //Factor           = ident Selector | integer | string |
-  //                    Read |
-  //                   Õ(Õ Expression Õ)Õ.
   
   //Read             = READ [Prompt].
   case class Read(prompt: Expression) extends Expression
@@ -82,6 +25,9 @@ object Tree extends App{
   case class Prompt(stringNode: Str) extends Expression
   case object Prompt
   
+  //Factor           = ident Selector | integer | string |
+  //                    Read |
+  //                   Õ(Õ Expression Õ)Õ.
   //Term             = Factor {(Õ*Õ | Õ/Õ) Factor}.
   //SimpleExpression = [Õ-Õ] Term
   //                   {(Õ+Õ | Õ-Õ) Term}.
@@ -237,4 +183,52 @@ object Tree extends App{
   //RepeatStatement = ÕREPEATÕ StatementSequence ÕUNTILÕ Expression.
   case class RepeatStatement(statement: Statement, condition: Expression) extends Statement
   case object RepeatStatement
+  
+    sealed trait Tree[+T] {
+    
+    def print(n: Int): String = {
+      def after$(s:String) = {
+        val i = s.indexOf("$")
+        if (i > 0){
+            s.substring(s.indexOf("$")+1) match {
+              case "$less$eq" => "<="
+              case "$less" => "<"
+              case "$greater" => ">"
+              case "$greater$eq" => ">="            
+              case "$colon$eq" => ":="
+              case "$plus" => "+"
+              case "$minus" => "-"
+              case "$times" => "*"
+              case "$div" => "/"
+              case x => x
+            }            
+        }    
+        else
+        	s
+      }
+      def ->(value: String,m:Int = n): String = "   "* m + after$(value) + "\n" 
+      val c = this.getClass()
+      var s = -> (c.getName) 
+      for(i<-c.getDeclaredFields()){   
+        val rawClass = i.getType.getEnclosingClass()
+        if (rawClass != null && rawClass.getName().contains("Tree")){        
+            i.setAccessible(true)
+        	val o:Tree[_] = i.get(this).asInstanceOf[Tree[_]] 
+            val p = o.print(n+1)
+            if (!p.isEmpty()){
+                s += ->(p,n+1)
+            }
+        }
+        else{
+            i.setAccessible(true)
+            s += -> (i.get(this).toString,n+2)
+        }
+      }
+      return s
+    }
+    override def toString = "AbstractSyntaxTree:\n" + print(0)
+	def compile = {
+      println("compile")
+    }
+  }
 }

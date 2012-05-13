@@ -1,14 +1,31 @@
 package Praktikum3
-import Praktikum3.Tree.Ident
-import Praktikum3.Declarations.IntConst
+import scala.actors.Actor
 
-object Test {
-
-  
-  def main(args: Array[String]): Unit = {
-    Declarations.start
-    Declarations ! Ident(Symbol("",1,1))
-    Declarations ! IntConst(1)
+object Parse extends Actor with App {
+  this.start
+  def act {
+    OberonParser.start
+    OberonParser ! 'Parse
+    receive {
+      case x => {
+        println(x)
+        OberonParser ! 'Stop
+        exit
+      }
+    }
   }
-
+}
+object Test extends Actor with App {
+  this.start
+  def act {
+    OberonParser.start
+    OberonParser ! 'Test
+    receive {
+      case x => {
+        println(x)
+        OberonParser ! 'Stop
+        exit
+      }
+    }
+  }
 }

@@ -1,14 +1,28 @@
 package Praktikum3
 import scala.annotation.tailrec
+import scala.actors.Actor
 
 @tailrec
-object OberonParser extends App {
+object OberonParser extends Actor with App{
   import Praktikum3.OberonScanner._
   import Praktikum3.Tree._
   import Tree._
-
+  
   val scanner = oberonScanner("src/Examples/NT/Module")
   var current = next
+  Test.start
+
+  def act {
+    Memory.Declarations.start
+    loop {
+      receive {
+        case 'Parse => sender ! parser
+        case 'Test => sender ! test(Module)
+        case 'Stop => { Memory.Declarations ! 'Stop; exit }
+        case x => println("Invalid Message: " + x)
+      }
+    }
+  } 
 
   def parser = {
     val m = Module
@@ -18,9 +32,9 @@ object OberonParser extends App {
     }
     m
   }
-    
-  val sym = Some(Symbol("",1,1))
-  trace("Tree:\n " + test(Module))
+
+  //  val sym = Some(Symbol("", 1, 1))
+  //  trace("Tree:\n " + test(Module))
 
   /*
    *  terminals
@@ -96,9 +110,10 @@ object OberonParser extends App {
       val expr = Expression
       if (edgeBracketOn)
         Expression
-      else
+      else {
         error("Selector with } after Expression")
-      Nil
+        Nil
+      }
     } else {
       // no error because its optional
       Nil
