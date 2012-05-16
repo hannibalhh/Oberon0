@@ -3,27 +3,15 @@ import scala.annotation.tailrec
 import scala.actors.Actor
 
 @tailrec
-object OberonParser extends Actor with App{
+object OberonParser extends App{
   import Praktikum3.OberonScanner._
   import Praktikum3.Tree._
   import Tree._
   
-  val scanner = oberonScanner("src/Examples/NT/Module")
+  val scanner = oberonScanner("src/OberonExamples/NT/FPSectionArrayVerschachtelt")
   var current = next
-  Test.start
-
-  def act {
-    Memory.Declarations.start
-    loop {
-      receive {
-        case 'Parse => sender ! parser
-        case 'Test => sender ! test(Module)
-        case 'Stop => { Memory.Declarations ! 'Stop; exit }
-        case x => println("Invalid Message: " + x)
-      }
-    }
-  } 
-
+ 
+  println(test(FPSection))
   def parser = {
     val m = Module
     if (!current.isEmpty) {
@@ -55,7 +43,7 @@ object OberonParser extends Actor with App{
   def ident = checkPrimitiveValue(Token.ident)
   def string = checkPrimitiveValue(Token.string)
   def integer = checkPrimitiveValue(Token.integer)
-  // only syntax terminals (not allowed in AbstractSyntaxTree)
+  // only syntax terminals
   def comma = checkPrimitive(Token.comma)
   def semicolon = checkPrimitive(Token.semicolon)
   def bracketOn = checkPrimitive(Token.bracketOn)

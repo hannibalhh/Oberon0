@@ -1,0 +1,7 @@
+a:array[10] of record
+	c: array[10] of record
+		s: record 
+			t: integer
+		end
+	end
+end

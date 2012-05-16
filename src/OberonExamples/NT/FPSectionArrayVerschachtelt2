@@ -1,0 +1,11 @@
+a,b:integer
+	c: array[10] of integer
+	d: record 
+			x,y,z: integer
+			u,v: record
+				w:array[3] of integer
+				t: integer
+			end
+		end
+	end
+end
