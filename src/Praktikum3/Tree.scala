@@ -1,24 +1,30 @@
 package Praktikum3
 import Praktikum3.Memory.Declarations.Descriptor
 import scala.collection.immutable.HashMap
+import cip.base.CodeGen
+import cip.instructions.IntegerVal
 
 object Tree extends App {
 
-  case object Nil extends Tree[Nothing] with Expression with Statement with Declarations with FormalParameters with ConstIdent with Type with Field with FieldList with ProcedureDeclaration {
+  case object Nil extends Tree[Nothing] with Expression with Statement with Declarations with FormalParameters with ConstIdent with Type with Field with FieldList with ProcedureDeclaration with Ident {
     override def toString = "."
     override def print(n: Int): String = ""
   }
 
   case class Integer(int: Symbol) extends Tree[Integer] with Expression with IndexExpression {
     override def compile(symbolTable: Map[String, Descriptor] = new HashMap) = {
-      Memory.Declarations.NilDescriptor
-      null
+      CodeGen.outInstr(new IntegerVal(Int.unbox(int.value.get)))
+	  Memory.Declarations.IntegerType
     }
   }
   case object Integer
 
   //Selector         = {Õ.Õ ident | Õ[Õ Expression Õ]Õ}.
-  case class Ident(identIdent: Symbol, optionalIdent: Expression = Nil) extends Tree[Ident] with Expression with Type with Declarations with ConstIdent {
+  trait Ident extends Tree[Ident] with Expression with Type with Declarations with ConstIdent{
+    val identIdent: Symbol = Symbol("",-1,-1)
+    val optionalIdent: Expression = Nil
+  }
+  case class IdentNode(override val identIdent: Symbol, override val optionalIdent: Expression = Nil) extends Tree[Ident] with Ident {
     def compile {
       //    	Memory.Declarations ! Memory.Declarations.Ident(identIdent.value.toString)
     }
@@ -91,7 +97,6 @@ object Tree extends App {
   trait ConstIdent extends IndexExpression
 
   //ArrayType = ÕARRAYÕ Õ[Õ IndexExpression Õ]Õ ÕOFÕ Type.
-  //  ArrayNode -> elem, Type
   case class ArrayType(elemArrayType: IndexExpression, _typeArrayType: Type) extends Type
   case object ArrayType
 
@@ -105,31 +110,30 @@ object Tree extends App {
 
   //FieldList = [IdentList Õ:Õ Type].
   trait Field extends Tree[Field] {
-    val idlField: Tree[Ident] = Nil
+    val idlField: Ident = Nil
     val _typeField: Type = Nil
   }
 
-  case class FieldNode(override val idlField: Tree[Ident], override val _typeField: Type) extends Field
+  case class FieldNode(override val idlField: Ident, override val _typeField: Type) extends Field
   case object FieldNode
   //RecordType = ÕRECORDÕ FieldList {Õ;Õ FieldList} ÕENDÕ.
-  // RecordNode -> ident, type
   case class RecordType(fieldsRecordType: FieldList) extends Type
 
   //Type = ident | ArrayType | RecordType.
   trait Type extends Tree[Type]
 
   //FPSection = [ÕVARÕ] IdentList Õ:Õ Type.
-  case class FPSection(override val identFPSection: Tree[Ident], override val _typeFPSection: Type, override val optionalFPSection: FormalParameters = Nil) extends FormalParameters
+  case class FPSection(override val identFPSection: Ident, override val _typeFPSection: Type, override val optionalFPSection: FormalParameters = Nil) extends FormalParameters
 
   //FormalParameters = FPSection {Õ;Õ FPSection}.
   trait FormalParameters extends Tree[FormalParameters] {
     val optionalFPSection: FormalParameters = Nil
-    val identFPSection: Tree[Ident] = Nil
+    val identFPSection: Ident = Nil
     val _typeFPSection: Type = Nil
   }
 
   //ProcedureHeading = ÕPROCEDUREÕ ident Õ(Õ [FormalParameters] Õ)Õ.
-  case class ProcedureHeading(identProcedureHeading: Tree[Ident], formalParameters: FormalParameters = Nil) extends Tree[ProcedureHeading]
+  case class ProcedureHeading(identProcedureHeading: Ident, formalParameters: FormalParameters = Nil) extends Tree[ProcedureHeading]
   case object ProcedureHeading
 
   //ProcedureBody    = Declarations ÕBEGINÕ StatementSequence ÕENDÕ 
@@ -140,10 +144,10 @@ object Tree extends App {
   trait ProcedureDeclaration extends Tree[ProcedureDeclaration] with Declarations {
     val procedureHeading: Tree[ProcedureHeading] = Nil
     val procedureBody: Tree[ProcedureBody] = Nil
-    val ident: Tree[Ident] = Nil
+    val ident: Ident = Nil
     override val next: ProcedureDeclaration = Nil
   }
-  case class ProcedureDeclarationNode(override val procedureHeading: Tree[ProcedureHeading], override val procedureBody: Tree[ProcedureBody], override val ident: Tree[Ident], override val next: ProcedureDeclaration = Nil) extends ProcedureDeclaration with Declarations {
+  case class ProcedureDeclarationNode(override val procedureHeading: Tree[ProcedureHeading], override val procedureBody: Tree[ProcedureBody], override val ident: Ident, override val next: ProcedureDeclaration = Nil) extends ProcedureDeclaration with Declarations {
     override def compile(symbolTable: Map[String, Descriptor] = new HashMap) = {
       Memory.Declarations.NilDescriptor
     }
@@ -161,22 +165,28 @@ object Tree extends App {
     val next: Declarations = Nil
   }
 
-  case class ConstDeclarations(ident: Tree[Ident], expression: Expression, override val next: Declarations = Nil) extends Declarations {
+  case class ConstDeclarations(ident: Ident, expression: Expression, override val next: Declarations = Nil) extends Declarations {
     override def compile(symbolTable: Map[String, Descriptor] = new HashMap) = {
+      val d = expression.compile(symbolTable);
+      next.compile(symbolTable + Tuple(ident.identIdent.value.get.toString,d));
       Memory.Declarations.NilDescriptor
     }
   }
   case object ConstDeclarations
 
-  case class TypeDeclarations(ident: Tree[Ident], _type: Type, override val next: Declarations = Nil) extends Declarations {
+  case class TypeDeclarations(ident: Ident, _type: Type, override val next: Declarations = Nil) extends Declarations {
     override def compile(symbolTable: Map[String, Descriptor] = new HashMap) = {
+      val d = _type.compile(symbolTable);
+      next.compile(symbolTable + Tuple(ident.identIdent.value.get.toString,d));
       Memory.Declarations.NilDescriptor
     }
   }
   case object TypeDeclarations
 
-  case class VarDeclarations(ident: Tree[Ident], _type: Type, override val next: Declarations = Nil) extends Declarations {
+  case class VarDeclarations(ident: Ident, _type: Type, override val next: Declarations = Nil) extends Declarations {
     override def compile(symbolTable: Map[String, Descriptor] = new HashMap) = {
+      val d = _type.compile(symbolTable);
+      next.compile(symbolTable + Tuple(ident.identIdent.value.get.toString,d));
       Memory.Declarations.NilDescriptor
     }
   }
@@ -193,15 +203,15 @@ object Tree extends App {
   //Module           = ÕMODULEÕ ident Õ;Õ Declarations
   //                   ÕBEGINÕ StatementSequence
   //                   ÕENDÕ ident Õ.Õ.
-  case class Module(idStart: Tree[Ident], declarations: Declarations, statement: Statement, idEnd: Tree[Ident]) extends Tree[Module]
+  case class Module(idStart: Ident, declarations: Declarations, statement: Statement, idEnd: Ident) extends Tree[Module]
   case object Module
 
   //Assignment        = ident Selector Õ:=Õ Expression
-  case class Assignment(ident: Tree[Ident], selector: Expression, expression: Expression) extends Statement
+  case class Assignment(ident: Ident, selector: Expression, expression: Expression) extends Statement
   case object Assignment
 
   //ProcedureCall = ident Õ(Õ [ActualParameters] Õ)Õ.
-  case class ProcedureCall(ident: Tree[Ident], expression: Tree[ActualParameters] = Nil) extends Statement
+  case class ProcedureCall(ident: Ident, expression: Tree[ActualParameters] = Nil) extends Statement
   case object ProcedureCall
 
   //IfStatement = ÕIFÕ Expression ÕTHENÕ StatementSequence

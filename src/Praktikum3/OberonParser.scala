@@ -8,10 +8,10 @@ object OberonParser extends App{
   import Praktikum3.Tree._
   import Tree._
   
-  val scanner = oberonScanner("src/OberonExamples/NT/FPSectionArrayVerschachtelt")
+  val scanner = oberonScanner("src/OberonExamples/NT/ExpressionVorlesung")
   var current = next
  
-  println(test(FPSection))
+  println(test(Expression))
   def parser = {
     val m = Module
     if (!current.isEmpty) {
@@ -88,7 +88,7 @@ object OberonParser extends App{
       val id = ident
       if (id.isDefined) {
         inc
-        Ident(id.get, Selector)
+        IdentNode(id.get, Selector)
       } else {
         error("Selector with ident after dot")
         Nil
@@ -118,7 +118,7 @@ object OberonParser extends App{
     val s = string
     if (id.isDefined) {
       inc
-      Ident(id.get, Selector)
+      IdentNode(id.get, Selector)
     } else if (int.isDefined) {
       inc
       Integer(int.get)
@@ -322,7 +322,7 @@ object OberonParser extends App{
     val id = ident
     if (id.isDefined) {
       inc
-      Ident(id.get)
+      IdentNode(id.get)
     } else {
       error("ConstIdent with ident")
       Nil
@@ -330,12 +330,12 @@ object OberonParser extends App{
   }
 
   //IdentList = ident {Õ,Õ ident}. // tested
-  def IdentList: Tree[Ident] = {
+  def IdentList: Ident = {
     trace("IdentList")
     val id = ident
     if (id.isDefined) {
       inc
-      Ident(id.get, OptionalIdentList)
+      IdentNode(id.get, OptionalIdentList)
     } else {
       error("IdentList with ident")
       Nil
@@ -349,7 +349,7 @@ object OberonParser extends App{
       val id = ident
       if (id.isDefined) {
         inc
-        Ident(id.get, OptionalIdentList)
+        IdentNode(id.get, OptionalIdentList)
       } else
         Nil
     } else {
@@ -478,7 +478,7 @@ object OberonParser extends App{
     val rec = RECORD
     if (id.isDefined) {
       inc
-      Tree.Ident(id.get)
+      Tree.IdentNode(id.get)
     } else if (arr) {
       ArrayType
     } else if (RECORD) {
@@ -552,9 +552,9 @@ object OberonParser extends App{
           inc
           if (bracketOff) {
             inc
-            Tree.ProcedureHeading(Ident(id.get))
+            Tree.ProcedureHeading(IdentNode(id.get))
           } else {
-            Tree.ProcedureHeading(Ident(id.get), FormalParameters)
+            Tree.ProcedureHeading(IdentNode(id.get), FormalParameters)
           }
         } else {
           error("ProcedureHeading with ( after ident")
@@ -612,7 +612,7 @@ object OberonParser extends App{
           val id = ident
           if (id.isDefined) {
             inc
-            Tree.ProcedureDeclarationNode(ph, pb, Ident(id.get))
+            Tree.ProcedureDeclarationNode(ph, pb, IdentNode(id.get))
           } else {
             error("ProcedureDeclaration with ident")
             Nil
@@ -683,7 +683,7 @@ object OberonParser extends App{
         if (expr != Nil) {
           if (semicolon) {
             inc
-            Tree.ConstDeclarations(Ident(id.get), expr, OptionalConstDeclarations)
+            Tree.ConstDeclarations(IdentNode(id.get), expr, OptionalConstDeclarations)
           } else {
             error("CONST Declarations with ; after Expression")
             Nil
@@ -712,7 +712,7 @@ object OberonParser extends App{
         if (t != Nil) {
           if (semicolon) {
             inc
-            Tree.TypeDeclarations(Ident(id.get), t, OptionalTypeDeclarations)
+            Tree.TypeDeclarations(IdentNode(id.get), t, OptionalTypeDeclarations)
           } else {
             error("TYPE Declarations with ; after Type")
             Nil
@@ -805,7 +805,7 @@ object OberonParser extends App{
                   inc
                   if (DOT) {
                     inc
-                    Tree.Module(Ident(id.get), d, sts, Ident(id2.get))
+                    Tree.Module(IdentNode(id.get), d, sts, IdentNode(id2.get))
                   } else {
                     error("Module with . after ident")
                     Nil
@@ -850,7 +850,7 @@ object OberonParser extends App{
         inc
         val expr = Expression
         if (expr != Nil) {
-          Tree.Assignment(Ident(id.get), s, expr)
+          Tree.Assignment(IdentNode(id.get), s, expr)
         } else {
           error("Assignment with Expression after Selector")
           Nil
@@ -901,12 +901,12 @@ object OberonParser extends App{
         inc
         if (bracketOff) {
           inc
-          Tree.ProcedureCall(Ident(id.get))
+          Tree.ProcedureCall(IdentNode(id.get))
         } else {
           val a = ActualParameters;
           if (bracketOff) {
             inc
-            Tree.ProcedureCall(Ident(id.get), a)
+            Tree.ProcedureCall(IdentNode(id.get), a)
           } else {
             error("ProcedureCall ends with )")
             Nil

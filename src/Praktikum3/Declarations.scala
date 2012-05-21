@@ -1,33 +1,36 @@
-package Praktikum3.Memory
-import scala.actors.Actor
+package Praktikum3.Memory 
 import scala.collection.immutable.HashMap
 
 object Declarations {
-
-
+ 
   case class IntConst(intval: Int) extends Descriptor
   case object IntConst
-  case class Variable(Address: String, _typ: Type) extends Descriptor
+  case class Variable(address: String, _type: Type) extends Descriptor
   case object Variable
-  case class ParameterVariable(Address: String, _typ: Type) extends Descriptor
+  case class ParameterVariable(address: String, _type: Type) extends Descriptor
   case object ParameterVariable
   case class Procedcure(name: String, startaddress: Int, lengthparblock: Int,
     framesize: Int, params: ParameterVariable) extends Descriptor
-  case object Proc
+  case object Procedcure
 
   trait Type extends Descriptor
-  case class ArrayType(numberelems: Int, basetype: Type) extends Type
-  case object Array
+  case class ArrayType(numberOfElems: Int, basetype: Type) extends Type
+  case object ArrayType
   case class RecordType(symbolTable: Map[String, Descriptor]) extends Type
-  case object Record
+  case object RecordType
 
-  trait SimpleType extends Type
-  case class IntegerType(int: Int) extends SimpleType
-  case object IntegerType
-  case class StringType(string: String) extends SimpleType
-  case object StringType
-  case class BooleanType(bool: Boolean) extends SimpleType
-  case object BooleanType
+  trait SimpleType extends Type{
+    val name: String
+  }
+  case object IntegerType extends SimpleType{
+    val name = "IntegerType"
+  }
+  case object StringType extends SimpleType{
+    val name = "StringType"
+  }
+  case object BooleanType extends SimpleType{
+    val name = "BooleanType"
+  }
 
   object NilDescriptor extends Descriptor
   trait Descriptor {
@@ -44,15 +47,15 @@ object Declarations {
       var s = ->(c.getName)
       for (i <- c.getDeclaredFields()) {
         val rawClass = i.getType.getEnclosingClass()
-        if (rawClass != null && rawClass.getName().contains("Declarations")) {
-          s += ->(i.getName(), n + 1)
-          i.setAccessible(true)
-          val o: Descriptor = i.get(this).asInstanceOf[Descriptor]
-          s += o.print(n + 2)
-        } else {
-          i.setAccessible(true)
-          s += ->(i.getName() + "(" + i.get(this) + ")", n + 1)
-        }
+//        if (rawClass != null && rawClass.getName().contains("Declarations")) {
+//          s += ->(i.getName(), n + 1)
+//          i.setAccessible(true)
+//          val o: Descriptor = i.get(this).asInstanceOf[Descriptor]
+//          s += o.print(n + 2)
+//        } else {
+//          i.setAccessible(true)
+//          s += ->(i.getName() + "(" + i.get(this) + ")", n + 1)
+//        }
       }
       return s
     }
