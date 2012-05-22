@@ -1,9 +1,13 @@
 package Praktikum3
+import cip.base.CodeGen
+import cip.instructions.ContInstruction
 
-object Test {
+object Test extends App {
 
-  def main(args: Array[String]): Unit = {
-    println(Memory.Declarations.StringType)
-  }
+  val codeGen = new CodeGen
+  codeGen.start
+  val abstractSyntaxTree = OberonParser.parser
+  abstractSyntaxTree.compile()
+  codeGen.close
 
 }

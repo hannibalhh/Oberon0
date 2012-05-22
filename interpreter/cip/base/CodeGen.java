@@ -44,6 +44,24 @@ public class CodeGen implements Serializable {
 
 	public CodeGen() {
 	}
+	
+	public void start() {
+		// Ausgabedatei "codetxt" mit den lesbaren Instruktionen
+		try {
+			fw = new FileWriter(new File(codeFilename));
+		} catch (IOException e) {
+			System.err.println(e.getMessage());
+		}
+		outtxt = new BufferedWriter(fw);
+	}
+	
+	public void close(){
+		try {
+			outtxt.close();
+		} catch (IOException e) {
+			System.err.println(e.getMessage());
+		}
+	}
 
 	/**
 	 * Gibt eine neue Sprungmarke zurück.

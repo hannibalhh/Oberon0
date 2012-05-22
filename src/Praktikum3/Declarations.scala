@@ -1,72 +1,95 @@
-package Praktikum3.Memory 
+package Praktikum3
 import scala.collection.immutable.HashMap
+import cip.base.CodeGen
 
-object Declarations {
- 
-  case class IntConst(intval: Int) extends Descriptor
-  case object IntConst
-  case class Variable(address: String, _type: Type) extends Descriptor
-  case object Variable
-  case class ParameterVariable(address: String, _type: Type) extends Descriptor
-  case object ParameterVariable
-  case class Procedcure(name: String, startaddress: Int, lengthparblock: Int,
-    framesize: Int, params: ParameterVariable) extends Descriptor
-  case object Procedcure
+object Memory {
+  
+  import Declarations._
+  				  // level -> symbolTabelle
+  var symbolTables = List(new HashMap[String, Descriptor])
+  var lengthDataSegmentMainProgram = 0
+  var curraddr = 0
+  
+  object Declarations {
 
-  trait Type extends Descriptor
-  case class ArrayType(numberOfElems: Int, basetype: Type) extends Type
-  case object ArrayType
-  case class RecordType(symbolTable: Map[String, Descriptor]) extends Type
-  case object RecordType
+    def ->(value: String, n: Int) = "	" * n + value + "\n"
 
-  trait SimpleType extends Type{
-    val name: String
-  }
-  case object IntegerType extends SimpleType{
-    val name = "IntegerType"
-  }
-  case object StringType extends SimpleType{
-    val name = "StringType"
-  }
-  case object BooleanType extends SimpleType{
-    val name = "BooleanType"
-  }
-
-  object NilDescriptor extends Descriptor
-  trait Descriptor {
-    def print(n: Int): String = {
-      def after$(s: String) = {
-        val i = s.indexOf("$")
-        if (i > 0)
-          s.substring(s.indexOf("$") + 1)
-        else
-          s
+    case object IntConst
+    case class IntConst(intval: Int) extends Descriptor {
+      def print(n: Int) = {
+        ->("IntConst(" + intval + ")", n)
       }
-      def ->(value: String, m: Int = n): String = "	" * m + after$(value) + "\n"
-      val c = this.getClass()
-      var s = ->(c.getName)
-      for (i <- c.getDeclaredFields()) {
-        val rawClass = i.getType.getEnclosingClass()
-//        if (rawClass != null && rawClass.getName().contains("Declarations")) {
-//          s += ->(i.getName(), n + 1)
-//          i.setAccessible(true)
-//          val o: Descriptor = i.get(this).asInstanceOf[Descriptor]
-//          s += o.print(n + 2)
-//        } else {
-//          i.setAccessible(true)
-//          s += ->(i.getName() + "(" + i.get(this) + ")", n + 1)
-//        }
-      }
-      return s
     }
-    override def toString = print(0)
-  }
 
-  //  val id = Tree.Ident(Symbol("",1,1))
-  //  val id2 = Ident(Symbol("a",2,2))
-  //  val b = Bool(false)
-  //  val arr = Array(2,b)
-  //  println(arr)
-  //  println(SymbolTable(Map()).map + ((id,1),(b,2)))
+    case object Variable
+    case class Variable(address: String, _type: Type) extends Descriptor {
+      def print(n: Int) = {
+        ->("Variable(address=" + address + ")", n) +
+          _type.print(n + 1)
+      }
+    }
+
+    case object ParameterVariable
+    case class ParameterVariable(address: String, _type: Type) extends Descriptor {
+      def print(n: Int) = {
+        ->("ParameterVariable(address=" + address + ")", n) +
+          _type.print(n + 1)
+      }
+    }
+
+    case object Procedcure
+    case class Procedcure(name: String, startaddress: Int, lengthparblock: Int,
+      framesize: Int, params: ParameterVariable) extends Descriptor {
+      def print(n: Int) = {
+        ->("Procedcure(name=" + name + "startaddress=" + startaddress + "lengthparblock=" + lengthparblock + "framesize=" + framesize + ")", n) +
+          params.print(n + 1)
+      }
+    }
+
+    trait Type extends Descriptor
+    case object ArrayType
+    case class ArrayType(numberOfElems: Int, basetype: Type) extends Type {
+      def print(n: Int) = {
+        ->("ArrayType(numberOfElems=" + numberOfElems + ")", n) +
+          basetype.print(n + 1)
+      }
+    }
+
+    case object RecordType
+    case class RecordType(symbolTable: Map[String, Descriptor]) extends Type {
+      def print(n: Int) = {
+        ->("RecordType", n) +
+          ->(symbolTable.toString, n + 1)
+      }
+    }
+
+    trait SimpleType extends Type {
+      val name: String
+    }
+    case object IntegerType extends SimpleType {
+      val name = "IntegerType"
+      def print(n: Int) = ->(name, n)
+    }
+    case object StringType extends SimpleType {
+      val name = "StringType"
+      def print(n: Int) = ->(name, n)
+    }
+    case object BooleanType extends SimpleType {
+      val name = "BooleanType"
+      def print(n: Int) = ->(name, n)
+    }
+
+    object NilDescriptor extends Descriptor {
+      def print(n: Int) = ""
+    }
+    trait Descriptor {
+
+      val size = 0;
+      def level = CodeGen.level
+
+      def print(n: Int): String
+      override def toString = print(0)
+    }
+  }
 
 }

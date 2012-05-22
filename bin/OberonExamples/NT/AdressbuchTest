@@ -1,0 +1,7 @@
+module m;
+var
+i : integer;
+begin
+i := 1 + 2;
+print i
+end m.

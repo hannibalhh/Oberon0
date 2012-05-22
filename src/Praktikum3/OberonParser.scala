@@ -3,15 +3,16 @@ import scala.annotation.tailrec
 import scala.actors.Actor
 
 @tailrec
-object OberonParser extends App{
+object OberonParser extends App {
   import Praktikum3.OberonScanner._
   import Praktikum3.Tree._
   import Tree._
-  
-  val scanner = oberonScanner("src/OberonExamples/NT/ExpressionVorlesung")
+
+  val scanner = oberonScanner("src/OberonExamples/NT/AdressbuchTest")
   var current = next
- 
-  println(test(Expression))
+
+  println(codegen(test(Module)))
+
   def parser = {
     val m = Module
     if (!current.isEmpty) {
@@ -118,7 +119,7 @@ object OberonParser extends App{
     val s = string
     if (id.isDefined) {
       inc
-      IdentNode(id.get, Selector)
+      IdentNode(id.get, Tree.Content(Selector))
     } else if (int.isDefined) {
       inc
       Integer(int.get)
@@ -266,19 +267,19 @@ object OberonParser extends App{
   def OptionalExpression(simple: Expression): Tree.Expression = {
     trace("OptionalExpression")
     val e = equ
-    val sh = sharp
+    //    val sh = sharp
     val smal = smaller
     val smaleq = smallereq
     val big = bigger
     val bigeq = biggereq
-    if (e || sh || smal || smaleq || big || bigeq) {
+    if (e || /* sh || */ smal || smaleq || big || bigeq) {
       inc
       val s = SimpleExpression
       if (s != Nil) {
         if (e) {
           simple := s
-        } else if (sh) {
-          simple :# s
+          //        } else if (sh) {
+          //          simple :# s
         } else if (smal) {
           simple < s
         } else if (smaleq) {
@@ -850,7 +851,7 @@ object OberonParser extends App{
         inc
         val expr = Expression
         if (expr != Nil) {
-          Tree.Assignment(IdentNode(id.get), s, expr)
+          Tree.Assignment(IdentNode(id.get,Tree.Content(s)), expr)
         } else {
           error("Assignment with Expression after Selector")
           Nil
@@ -1092,7 +1093,7 @@ object OberonParser extends App{
       IfStatement
     } else if (p) {
       inc
-      Expression
+      Print(Expression)
     } else if (whi) {
       WhileStatement
     } else if (r) {
@@ -1188,7 +1189,7 @@ object OberonParser extends App{
   }
 
   def trace(s: Any) = {
-    if (current == None)
+    if (current.isEmpty)
       println("(n/a)    " + s)
     else
       println(Symbol.linecolumn(current.get.line, current.get.column) + " " + s)
@@ -1207,6 +1208,16 @@ object OberonParser extends App{
       Console.err.println(Symbol.linecolumn(current.get.line, current.get.column) + " We expect:" + expectedToken)
     }
     System.exit(-1)
+  }
+  
+  def codegen(t: Tree[_]) = {
+    import cip.base.CodeGen
+    val codeGen = new CodeGen
+    codeGen.start
+    val abstractSyntaxTree = t
+    abstractSyntaxTree.compile()
+    codeGen.close    
+    t
   }
 
   def test(t: Tree[_]) = {
