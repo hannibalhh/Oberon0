@@ -1,4 +1,5 @@
 PUSHS, m
+JMP, 0
 PUSHI, 1
 PUSHI, 2
 ADD

@@ -6,6 +6,8 @@ import cip.instructions._
 
 object Tree extends App {
 
+  def ->(value: String, n: Int) = "	" * n + value + "\n"
+
   case object Nil extends Tree[Nothing] with Expression with Statement with Declarations with FormalParameters with ConstIdent with Type with Field with FieldList with ProcedureDeclaration with Ident {
     override def toString = "."
     override def print(n: Int): String = ""
@@ -14,10 +16,11 @@ object Tree extends App {
 
   case class Integer(int: Symbol) extends Tree[Integer] with Expression with IndexExpression {
     override def compile(symbolTable: Map[String, Descriptor] = new HashMap) = {
-      println("wichtig:" + int.value.get.toString)
       CodeGen.outInstr(new IntegerVal(int.value.get.toString.toInt))
       Memory.Declarations.IntegerType
     }
+
+    override def print(n: Int) = ->("Integer(" + int + ")", n)
   }
   case object Integer
 
@@ -45,6 +48,8 @@ object Tree extends App {
         }
       }
     }
+
+    override def print(n: Int) = ->("Content", n) + address.print(n + 1)
   }
   case object Content
   case class IdentNode(override val identIdent: Symbol, override val optionalIdent: Expression = Nil) extends Tree[Ident] with Ident {
@@ -81,6 +86,8 @@ object Tree extends App {
     //		unindent();
     //		return t;
     //    }
+
+    override def print(n: Int) = ->("IdentNode(" + identIdent + ")", n) + optionalIdent.print(n + 1)
   }
   case object Ident
 
@@ -90,12 +97,14 @@ object Tree extends App {
       CodeGen.outInstr(new StringVal(string.value.get.toString));
       Memory.Declarations.StringType
     }
+
+    override def print(n: Int) = ->("Str(" + string + ")", n)
   }
   case object Str
 
   //Read             = READ [Prompt].
-  case class Read(prompt: Expression) extends Expression{
-
+  case class Read(prompt: Expression) extends Expression {
+    override def print(n: Int) = ->("Read", n) + prompt.print(n + 1)
   }
   case object Read
   //Prompt           = string.
@@ -117,12 +126,16 @@ object Tree extends App {
     val left: Expression = Nil
     val right: Expression = Nil
     val value = classOf[Expression].getName
+
     override def compile(symbolTable: Map[String, Descriptor] = new HashMap) = {
       val dl = left.compile(symbolTable)
       right.compile(symbolTable)
       compileOperator
       dl
     }
+
+    override def print(n: Int) = ->(value, n) + left.print(n + 1) + right.print(n + 1)
+
     def compileOperator = ()
     def *(expr: Expression): Expression = new *(this, expr)
     def /(expr: Expression): Expression = new /(this, expr)
@@ -175,7 +188,9 @@ object Tree extends App {
   }
 
   //ActualParameters  = Expression {Õ,Õ Expression}.
-  case class ActualParameters(expressionActualParameters: Expression, actualParameters: Tree[ActualParameters]) extends Tree[ActualParameters]
+  case class ActualParameters(expressionActualParameters: Expression, actualParameters: Tree[ActualParameters]) extends Tree[ActualParameters] {
+    override def print(n: Int) = ->("ActualParameters", n) + expressionActualParameters.print(n + 1) + actualParameters.print(n + 1)
+  }
 
   //IndexExpression  = integer | ConstIdent.
   trait IndexExpression extends Tree[IndexExpression]
@@ -184,13 +199,17 @@ object Tree extends App {
   trait ConstIdent extends IndexExpression
 
   //ArrayType = ÕARRAYÕ Õ[Õ IndexExpression Õ]Õ ÕOFÕ Type.
-  case class ArrayType(elemArrayType: IndexExpression, _typeArrayType: Type) extends Type
+  case class ArrayType(elemArrayType: IndexExpression, _typeArrayType: Type) extends Type {
+    override def print(n: Int) = ->("ArrayType", n) + elemArrayType.print(n + 1) + _typeArrayType.print(n + 1)
+  }
   case object ArrayType
 
   // FieldListList
   trait FieldList extends Tree[FieldList] {
     val fields: Field = Nil
     val nextFieldList: FieldList = Nil
+    override def print(n: Int) = ->("FieldList", n) + fields.print(n + 1) + nextFieldList.print(n + 1)
+
   }
   case class FieldListNode(override val fields: Field, override val nextFieldList: FieldList) extends FieldList
   case object FieldListNode
@@ -199,32 +218,43 @@ object Tree extends App {
   trait Field extends Tree[Field] {
     val idlField: Ident = Nil
     val _typeField: Type = Nil
+    override def print(n: Int) = ->("Field", n) + idlField.print(n + 1) + _typeField.print(n + 1)
   }
 
   case class FieldNode(override val idlField: Ident, override val _typeField: Type) extends Field
   case object FieldNode
+
   //RecordType = ÕRECORDÕ FieldList {Õ;Õ FieldList} ÕENDÕ.
-  case class RecordType(fieldsRecordType: FieldList) extends Type
+  case class RecordType(fieldsRecordType: FieldList) extends Type {
+    override def print(n: Int) = ->("RecordType", n) + fieldsRecordType.print(n + 1)
+  }
 
   //Type = ident | ArrayType | RecordType.
   trait Type extends Tree[Type]
 
   //FPSection = [ÕVARÕ] IdentList Õ:Õ Type.
-  case class FPSection(override val identFPSection: Ident, override val _typeFPSection: Type, override val optionalFPSection: FormalParameters = Nil) extends FormalParameters
+  case class FPSection(override val identFPSection: Ident, override val _typeFPSection: Type, override val optionalFPSection: FormalParameters = Nil) extends FormalParameters {
+    override def print(n: Int) = ->("FPSection", n) + identFPSection.print(n + 1) + _typeFPSection.print(n + 1) + optionalFPSection.print(n + 1)
+  }
 
   //FormalParameters = FPSection {Õ;Õ FPSection}.
   trait FormalParameters extends Tree[FormalParameters] {
     val optionalFPSection: FormalParameters = Nil
     val identFPSection: Ident = Nil
     val _typeFPSection: Type = Nil
+    override def print(n: Int) = ->("FormalParameters", n) + optionalFPSection.print(n + 1) + identFPSection.print(n + 1) + _typeFPSection.print(n + 1)
   }
 
   //ProcedureHeading = ÕPROCEDUREÕ ident Õ(Õ [FormalParameters] Õ)Õ.
-  case class ProcedureHeading(identProcedureHeading: Ident, formalParameters: FormalParameters = Nil) extends Tree[ProcedureHeading]
+  case class ProcedureHeading(identProcedureHeading: Ident, formalParameters: FormalParameters = Nil) extends Tree[ProcedureHeading] {
+    override def print(n: Int) = ->("ProcedureHeading", n) + identProcedureHeading.print(n + 1) + formalParameters.print(n + 1)
+  }
   case object ProcedureHeading
 
   //ProcedureBody    = Declarations ÕBEGINÕ StatementSequence ÕENDÕ 
-  case class ProcedureBody(declarationsProcedureBody: Declarations, statementProcedureBody: Statement) extends Tree[ProcedureBody]
+  case class ProcedureBody(declarationsProcedureBody: Declarations, statementProcedureBody: Statement) extends Tree[ProcedureBody] {
+    override def print(n: Int) = ->("ProcedureBody", n) + declarationsProcedureBody.print(n + 1) + statementProcedureBody.print(n + 1)
+  }
   case object ProcedureBody
 
   //ProcedureDeclaration = ProcedureHeading Õ;Õ ProcedureBody ident.
@@ -233,6 +263,7 @@ object Tree extends App {
     val procedureBody: Tree[ProcedureBody] = Nil
     val ident: Ident = Nil
     override val next: ProcedureDeclaration = Nil
+    override def print(n: Int) = ->("ProcedureDeclaration", n) + procedureHeading.print(n + 1) + procedureBody.print(n + 1) + ident.print(n + 1) + next.print(n + 1)
   }
   case class ProcedureDeclarationNode(override val procedureHeading: Tree[ProcedureHeading], override val procedureBody: Tree[ProcedureBody], override val ident: Ident, override val next: ProcedureDeclaration = Nil) extends ProcedureDeclaration with Declarations {
     override def compile(symbolTable: Map[String, Descriptor] = new HashMap) = {
@@ -258,6 +289,7 @@ object Tree extends App {
       next.compile(symbolTable + Tuple(ident.identIdent.value.get.toString, d));
       Memory.Declarations.NilDescriptor
     }
+    override def print(n: Int) = ->("ConstDeclarations", n) + ident.print(n + 1) + expression.print(n + 1) + next.print(n + 1)
   }
   case object ConstDeclarations
 
@@ -267,6 +299,7 @@ object Tree extends App {
       next.compile(symbolTable + Tuple(ident.identIdent.value.get.toString, d));
       Memory.Declarations.NilDescriptor
     }
+    override def print(n: Int) = ->("TypeDeclarations", n) + ident.print(n + 1) + _type.print(n + 1) + next.print(n + 1)
   }
   case object TypeDeclarations
 
@@ -276,16 +309,19 @@ object Tree extends App {
       next.compile(symbolTable + Tuple(ident.identIdent.value.get.toString, d));
       Memory.Declarations.NilDescriptor
     }
+    override def print(n: Int) = ->("VarDeclarations", n) + ident.print(n + 1) + _type.print(n + 1) + next.print(n + 1)
+
   }
   case object VarDeclarations
-  
+
   case object Print
-  case class Print(expression:Expression) extends Tree[Print] with Expression{
-        override def compile(symbolTable: Map[String, Descriptor] = new HashMap) = {
-        	expression.compile(symbolTable)
-        	CodeGen.outInstr(new PrintInstruction())
-        	Memory.Declarations.NilDescriptor
-		}
+  case class Print(expression: Expression) extends Tree[Print] with Expression {
+    override def compile(symbolTable: Map[String, Descriptor] = new HashMap) = {
+      expression.compile(symbolTable)
+      CodeGen.outInstr(new PrintInstruction())
+      Memory.Declarations.NilDescriptor
+    }
+    override def print(n: Int) = ->("Print", n) + expression.print(n + 1)
   }
 
   //   IfStatement | ÕPRINTÕ Expression |
@@ -296,6 +332,9 @@ object Tree extends App {
       st.compile(symbolTable)
       sts.compile(symbolTable)
     }
+
+    override def print(n: Int) = ->("StatementSequence", n) + st.print(n + 1) + sts.print(n + 1)
+
   }
   case object StatementSequence
 
@@ -307,7 +346,6 @@ object Tree extends App {
   case class Module(idStart: Ident, declarations: Declarations, statement: Statement, idEnd: Ident) extends Tree[Module] {
 
     override def compile(symbolTable: Map[String, Descriptor] = new HashMap) = {
-      println("Module")
       CodeGen.outInstr(new StringVal(idStart.identIdent.value.get.toString));
       val mainProgramStart = CodeGen.newLabel();
       CodeGen.outInstr(new JumpInstruction(mainProgramStart));
@@ -325,6 +363,9 @@ object Tree extends App {
       CodeGen.outInstr(new StopInstruction())
       Memory.Declarations.NilDescriptor
     }
+
+    override def print(n: Int) = ->("Module", n) + idStart.print(n + 1) + declarations.print(n + 1) + statement.print(n + 1) + idEnd.print(n + 1)
+
   }
   case object Module
 
@@ -336,66 +377,42 @@ object Tree extends App {
       CodeGen.outInstr(new AssignmentInstruction(t.size));
       Memory.Declarations.NilDescriptor
     }
+    override def print(n: Int) = ->("Assignment", n) + ident.print(n + 1) + expression.print(n + 1)
+
   }
   case object Assignment
 
   //ProcedureCall = ident Õ(Õ [ActualParameters] Õ)Õ.
-  case class ProcedureCall(ident: Ident, expression: Tree[ActualParameters] = Nil) extends Statement
+  case class ProcedureCall(ident: Ident, expression: Tree[ActualParameters] = Nil) extends Statement {
+    override def print(n: Int) = ->("ProcedureCall", n) + ident.print(n + 1) + expression.print(n + 1)
+
+  }
   case object ProcedureCall
 
   //IfStatement = ÕIFÕ Expression ÕTHENÕ StatementSequence
   //	{ÕELSIFÕ Expression ÕTHENÕ StatementSequence}
   //  	[ÕELSEÕ StatementSequence] ÕENDÕ.
-  case class IfStatement(condition: Expression, statementSequence: Statement, ifStatement: Tree[IfStatement], alternatve: Statement = Nil) extends Statement with Tree[IfStatement]
+  case class IfStatement(condition: Expression, statementSequence: Statement, ifStatement: Tree[IfStatement], alternatve: Statement = Nil) extends Statement with Tree[IfStatement] {
+    override def print(n: Int) = ->("IfStatement", n) + condition.print(n + 1) + statementSequence.print(n + 1) + ifStatement.print(n + 1) + alternatve.print(n + 1)
+  }
   case object IfStatement
 
   //WhileStatement = ÕWHILEÕ Expression ÕDOÕ StatementSequence ÕENDÕ.
-  case class WhileStatement(condition: Expression, statement: Statement) extends Statement
+  case class WhileStatement(condition: Expression, statement: Statement) extends Statement{
+        override def print(n: Int) = ->("WhileStatement", n) + condition.print(n + 1) + statement.print(n + 1) 
+
+  }
   case object WhileStatement
 
   //RepeatStatement = ÕREPEATÕ StatementSequence ÕUNTILÕ Expression.
-  case class RepeatStatement(statement: Statement, condition: Expression) extends Statement
+  case class RepeatStatement(statement: Statement, condition: Expression) extends Statement{
+            override def print(n: Int) = ->("RepeatStatement", n) + condition.print(n + 1) + statement.print(n + 1) 
+
+  }
   case object RepeatStatement
 
   sealed trait Tree[+T] {
-    def print(n: Int): String = {
-      def after$(s: String) = {
-        val i = s.indexOf("$")
-        if (i > 0) {
-          s.substring(s.indexOf("$") + 1) match {
-            case "$less$eq" => "<="
-            case "$less" => "<"
-            case "$greater" => ">"
-            case "$greater$eq" => ">="
-            case "$colon$eq" => "="
-            case "$plus" => "+"
-            case "$minus" => "-"
-            case "$times" => "*"
-            case "$div" => "/"
-            case x => x
-          }
-        } else
-          s
-      }
-      def ->(value: String, m: Int = n): String = "   " * m + after$(value) + "\n"
-      val c = this.getClass()
-      var s = ->(c.getName)
-      for (i <- c.getDeclaredFields()) {
-        val rawClass = i.getType.getEnclosingClass()
-        if (rawClass != null && rawClass.getName().contains("Tree")) {
-          i.setAccessible(true)
-          val o: Tree[_] = i.get(this).asInstanceOf[Tree[_]]
-          val p = o.print(n + 1)
-          if (!p.isEmpty()) {
-            s += ->(p, n + 1)
-          }
-        } else {
-          i.setAccessible(true)
-          s += ->(i.get(this).toString, n + 2)
-        }
-      }
-      return s
-    }
+    def print(n: Int): String
     override def toString = "AbstractSyntaxTree:\n" + print(0)
     def compile(symbolTable2: Map[String, Descriptor] = new HashMap): Memory.Declarations.Descriptor = Memory.Declarations.NilDescriptor
   }
