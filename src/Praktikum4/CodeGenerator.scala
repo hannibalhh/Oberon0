@@ -4,5 +4,5 @@ import java.io.BufferedReader
 import java.io.FileReader
 
 object CodeGenerator extends App {
-  StandaloneCG.main(Array("codetxt", "0"))
+  StandaloneCG.main(Array("assemblerCorrectCode", "0"))
 }

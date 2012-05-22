@@ -26,7 +26,7 @@ public class CodeGen implements Serializable {
 	private FileInputStream inStream;
 	private ObjectInputStream inputNodes;
 
-	static private String codeFilename = "codetxt";
+	static private String codeFilename = "assemblerCorrectCode";
 	static private FileWriter fw;
 	static BufferedWriter outtxt;
 
@@ -48,7 +48,7 @@ public class CodeGen implements Serializable {
 	public void start() {
 		// Ausgabedatei "codetxt" mit den lesbaren Instruktionen
 		try {
-			fw = new FileWriter(new File(codeFilename));
+			fw = new FileWriter(new File("assemblerCode"));
 		} catch (IOException e) {
 			System.err.println(e.getMessage());
 		}
