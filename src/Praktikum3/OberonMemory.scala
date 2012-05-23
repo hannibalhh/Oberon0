@@ -11,9 +11,6 @@ object Memory {
   var curraddr = 0
   
   object Declarations {
-
-    def ->(value: String, n: Int) = "	" * n + value + "\n"
-
     case object IntConst
     case class IntConst(intval: Int) extends Descriptor {
       def print(n: Int) = ->("IntConst(" + intval + ")", n)
@@ -65,14 +62,16 @@ object Memory {
     object NilDescriptor extends Descriptor {
       def print(n: Int) = ""
     }
+    
     trait Descriptor {
-
       val size = 0;
       def level = CodeGen.level
 
       def print(n: Int): String
       override def toString = print(0)
     }
+    
+    def ->(value: String, n: Int) = "	" * n + value + "\n"
   }
 
 }
