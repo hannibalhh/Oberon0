@@ -4,7 +4,7 @@ import scala.collection.immutable.HashMap
 import cip.base.CodeGen
 import cip.instructions._
 
-object Tree extends App {
+object Tree {
 
   case object Nil extends Tree[Nothing] with Expression with Statement with Declarations with FormalParameters with ConstIdent with Type with Field with FieldList with ProcedureDeclaration with Ident {
     override def toString = "."
@@ -15,7 +15,7 @@ object Tree extends App {
   case object Integer
   case class Integer(int: Symbol) extends Tree[Integer] with Expression with IndexExpression {
     override def compile(symbolTable: Map[String, Descriptor] = new HashMap) = {
-      trace("Content")
+      trace("Integer")
       CodeGen.outInstr(new IntegerVal(int.value.get.toString.toInt))
       Memory.Declarations.IntegerType
     }
@@ -28,15 +28,16 @@ object Tree extends App {
     val identIdent: Symbol = Symbol("", -1, -1)
     val optionalIdent: Expression = Nil
   }
-  
+
   case object Content
   case class Content(address: Expression) extends Ident {
     override def compile(symbolTable: Map[String, Descriptor] = new HashMap) = {
       trace("Content")
       address match {
         case i: Ident => {
+          trace("=> Ident")
           val t = address.compile(symbolTable)
-          val e = CodeGen.search(i.identIdent.value.get.toString, i.identIdent.line)
+          val e = Memory.SymbolTables(i.identIdent.value.get.toString)
           e match {
             case e: ConstIdent =>
             case _ => CodeGen.outInstr(new ContInstruction(t.size))
@@ -53,47 +54,44 @@ object Tree extends App {
 
     override def print(n: Int) = ->("Content", n) + address.print(n + 1)
   }
-  
+
   case object Ident
   case class IdentNode(override val identIdent: Symbol, override val optionalIdent: Expression = Nil) extends Tree[Ident] with Ident {
-    override def compile(symbolTable: Map[String, Descriptor] = new HashMap) = {
+    override def compile(symbolTable: Map[String, Descriptor] = new HashMap): Memory.Declarations.Descriptor = {
       trace("IdentNode")
-      Memory.Declarations.IntegerType
+      val eOp = Memory.SymbolTables(identIdent.value.get.toString);
+      if (eOp.isEmpty)
+        Memory.Declarations.NilDescriptor
+      else {
+        val e = eOp.get
+        e match {
+          case x: Memory.Declarations.Type => x
+          case x: Memory.Declarations.VariableDescriptor => {
+            val addr = x.address
+            val t = x._type
+            CodeGen.outInstr(new IntegerVal(addr.toInt))
+            if (e.level > 0) {
+              if (e.level == Memory.Level.value) {
+                CodeGen.outInstr(new GetFP())
+                CodeGen.outInstr(new AdditionInstruction())
+              } else {
+                CodeGen.outInstr(new IntegerVal(e.level))
+                CodeGen.outInstr(new GetSL())
+                CodeGen.outInstr(new AdditionInstruction())
+              }
+            }
+            if (x.isParameter) {
+              CodeGen.outInstr(new ContInstruction(1))
+            }
+            Memory.Declarations.NilDescriptor
+          }
+          case x: Memory.Declarations.IntConst => {
+            CodeGen.outInstr(new IntegerVal(x.intval))
+            Memory.Declarations.IntegerType
+          }
+        }
+      }
     }
-    
-    //    def compile {
-    //		val e = Memory.symbolTables(identIdent.value.get.toString,identIdent.line);
-    //		if (e.level >= 0) {
-    //			if ((e instanceof ArrayDescr) || (e instanceof RecordDescr)
-    //					|| (e instanceof SimpleTypeDescr))
-    //				return e;
-    //		} else
-    //			return null;
-    //		trace("IdfNode " + idName + " " + level);
-    //		if (e instanceof VarDescr) {
-    //			addr = ((VarDescr) e).getAddr();
-    //			t = ((VarDescr) e).getTyp();
-    //			CodeGen.outInstr(new IntegerVal(addr));
-    //			if (level > 0) {
-    //				if (level == CodeGen.level) {
-    //					CodeGen.outInstr(new GetFP());
-    //					CodeGen.outInstr(new AdditionInstruction());
-    //				} else {
-    //					CodeGen.outInstr(new IntegerVal(level));
-    //					CodeGen.outInstr(new GetSL());
-    //					CodeGen.outInstr(new AdditionInstruction());
-    //				}
-    //			}
-    //			if (((VarDescr) e).getIsvarpar()) {
-    //				CodeGen.outInstr(new ContInstruction(1));
-    //			}
-    //		} else if (e instanceof IntConstDescr) {
-    //			CodeGen.outInstr(new IntegerVal(((IntConstDescr) e).getIntVal()));
-    //			t = new SimpleTypeDescr("integer");
-    //		}
-    //		unindent();
-    //		return t;
-    //    }
 
     override def print(n: Int) = ->("IdentNode(" + identIdent + ")", n) + optionalIdent.print(n + 1)
   }
@@ -119,10 +117,10 @@ object Tree extends App {
     }
     override def print(n: Int) = ->("Read", n) + prompt.print(n + 1)
   }
-  
+
   //Prompt           = string.
   case object Prompt
-  case class Prompt(stringNode: Str) extends Expression{
+  case class Prompt(stringNode: Str) extends Expression {
     override def compile(symbolTable: Map[String, Descriptor] = new HashMap) = {
       trace("Prompt")
       Memory.Declarations.IntegerType
@@ -239,9 +237,9 @@ object Tree extends App {
     val nextFieldList: FieldList = Nil
     override def print(n: Int) = ->("FieldList", n) + fields.print(n + 1) + nextFieldList.print(n + 1)
   }
-  
+
   case object FieldListNode
-  case class FieldListNode(override val fields: Field, override val nextFieldList: FieldList) extends FieldList{
+  case class FieldListNode(override val fields: Field, override val nextFieldList: FieldList) extends FieldList {
     override def compile(symbolTable: Map[String, Descriptor] = new HashMap) = {
       trace("FieldListNode")
       Memory.Declarations.IntegerType
@@ -256,7 +254,7 @@ object Tree extends App {
   }
 
   case object FieldNode
-  case class FieldNode(override val idlField: Ident, override val _typeField: Type) extends Field{
+  case class FieldNode(override val idlField: Ident, override val _typeField: Type) extends Field {
     override def compile(symbolTable: Map[String, Descriptor] = new HashMap) = {
       trace("FieldNode")
       Memory.Declarations.IntegerType
@@ -322,7 +320,7 @@ object Tree extends App {
     override val next: ProcedureDeclaration = Nil
     override def print(n: Int) = ->("ProcedureDeclaration", n) + procedureHeading.print(n + 1) + procedureBody.print(n + 1) + ident.print(n + 1) + next.print(n + 1)
   }
-  
+
   case object ProcedureDeclarationNode
   case class ProcedureDeclarationNode(override val procedureHeading: Tree[ProcedureHeading], override val procedureBody: Tree[ProcedureBody], override val ident: Ident, override val next: ProcedureDeclaration = Nil) extends ProcedureDeclaration with Declarations {
     override def compile(symbolTable: Map[String, Descriptor] = new HashMap) = {
@@ -330,7 +328,7 @@ object Tree extends App {
       Memory.Declarations.NilDescriptor
     }
   }
-  
+
   //Declarations     = [ÕCONSTÕ ident Õ=Õ Expression Õ;Õ
   //                            {ident Õ=Õ Expression Õ;Õ}]
   //                   [ÕTYPEÕ ident Õ=Õ Type Õ;Õ
@@ -369,8 +367,20 @@ object Tree extends App {
     override def compile(symbolTable: Map[String, Descriptor] = new HashMap) = {
       trace("VarDeclarations")
       val d = _type.compile(symbolTable)
-      next.compile(symbolTable + Tuple(ident.identIdent.value.get.toString, d));
-      Memory.Declarations.NilDescriptor
+      //      Memory.symbolTables(Memory.Level.value).get(ident.identIdent.value.get.toString)
+      val addr = Memory.curraddr;
+      d match {
+        case t: Memory.Declarations.Type => {
+          val entry = Memory.Declarations.Variable(addr.toString, t);
+          Memory.curraddr = Memory.curraddr + d.size
+          Memory.SymbolTables + (ident.identIdent.value.get.toString, entry)
+          next.compile(symbolTable + Tuple(ident.identIdent.value.get.toString, d));
+        }
+        case x => {
+          error("TypeDescriptor is missing: " + x)
+          Memory.Declarations.NilDescriptor
+        }
+      }
     }
     override def print(n: Int) = ->("VarDeclarations", n) + ident.print(n + 1) + _type.print(n + 1) + next.print(n + 1)
 
@@ -390,7 +400,7 @@ object Tree extends App {
   //   IfStatement | ÕPRINTÕ Expression |
   //   WhileStatement | RepeatStatement].
   //StatementSequence = Statement {Õ;Õ Statement}.
-  case object StatementSequence  
+  case object StatementSequence
   case class StatementSequence(st: Statement, sts: Tree[StatementSequence]) extends Statement with Tree[StatementSequence] {
     override def compile(symbolTable: Map[String, Descriptor] = new HashMap) = {
       trace("StatementSequence")
@@ -414,17 +424,16 @@ object Tree extends App {
       CodeGen.outInstr(new StringVal(idStart.identIdent.value.get.toString))
       val mainProgramStart = CodeGen.newLabel()
       CodeGen.outInstr(new JumpInstruction(mainProgramStart))
-      val s = symbolTable + (
-        Tuple("Integer", Memory.Declarations.IntegerType),
-        Tuple("Boolean", Memory.Declarations.BooleanType),
-        Tuple("String", Memory.Declarations.StringType))
-      declarations.compile(s)
-      statement.compile(s)
-      Memory.lengthDataSegmentMainProgram = Memory.curraddr
       CodeGen.outInstr(new LabelInstruction(mainProgramStart))
       CodeGen.outInstr(new IntegerVal(
         Memory.lengthDataSegmentMainProgram))
       CodeGen.outInstr(new SetSP())
+      Memory.SymbolTables + ("integer", Memory.Declarations.IntegerType)
+      Memory.SymbolTables + ("boolean", Memory.Declarations.BooleanType)
+      Memory.SymbolTables + ("string", Memory.Declarations.StringType)
+      declarations.compile(Memory.SymbolTables())
+      statement.compile(Memory.SymbolTables())
+      Memory.lengthDataSegmentMainProgram = Memory.curraddr
       CodeGen.outInstr(new StopInstruction())
       Memory.Declarations.NilDescriptor
     }
@@ -433,7 +442,7 @@ object Tree extends App {
   }
 
   //Assignment        = ident Selector Õ:=Õ Expression
-  case object Assignment  
+  case object Assignment
   case class Assignment(ident: Ident, expression: Expression) extends Statement {
     override def compile(symbolTable: Map[String, Descriptor] = new HashMap) = {
       trace("Assignment")
@@ -459,7 +468,7 @@ object Tree extends App {
   //IfStatement = ÕIFÕ Expression ÕTHENÕ StatementSequence
   //	{ÕELSIFÕ Expression ÕTHENÕ StatementSequence}
   //  	[ÕELSEÕ StatementSequence] ÕENDÕ.
-  case object IfStatement  
+  case object IfStatement
   case class IfStatement(condition: Expression, statementSequence: Statement, ifStatement: Tree[IfStatement], alternatve: Statement = Nil) extends Statement with Tree[IfStatement] {
     override def compile(symbolTable: Map[String, Descriptor] = new HashMap) = {
       trace("IfStatement")
@@ -469,7 +478,7 @@ object Tree extends App {
   }
 
   //WhileStatement = ÕWHILEÕ Expression ÕDOÕ StatementSequence ÕENDÕ.
-  case object WhileStatement  
+  case object WhileStatement
   case class WhileStatement(condition: Expression, statement: Statement) extends Statement {
     override def compile(symbolTable: Map[String, Descriptor] = new HashMap) = {
       trace("WhileStatement")
@@ -495,7 +504,10 @@ object Tree extends App {
   }
 
   def ->(value: String, n: Int) = "	" * n + value + "\n"
-  def trace(s: Any) = {
-    println("compile: " + s)
+  def trace(s: Any) = println("compile: " + s)
+  def error(s: Any) = {
+    Thread.sleep(40)
+    Console.err.println("compile error: " + s)
+    System.exit(-1)
   }
 }

@@ -11,7 +11,7 @@ object OberonParser extends App {
   val scanner = oberonScanner("src/OberonExamples/NT/AdressbuchTest")
   var current = next
 
-  println(codegen(test(Module)))
+  codegen(test(Module))
 
   def parser = {
     val m = Module
@@ -851,7 +851,7 @@ object OberonParser extends App {
         inc
         val expr = Expression
         if (expr != Nil) {
-          Tree.Assignment(IdentNode(id.get,Tree.Content(s)), expr)
+          Tree.Assignment(Content(IdentNode(id.get,Tree.Content(s))), expr)
         } else {
           error("Assignment with Expression after Selector")
           Nil
@@ -1215,7 +1215,9 @@ object OberonParser extends App {
     val codeGen = new CodeGen
     codeGen.start
     val abstractSyntaxTree = t
+    println(t)
     abstractSyntaxTree.compile()
+    println(Memory.SymbolTables)
     codeGen.close    
     t
   }
