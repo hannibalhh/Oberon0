@@ -89,7 +89,7 @@ object OberonParser extends App {
       val id = ident
       if (id.isDefined) {
         inc
-        IdentNode(id.get, Selector)
+        Tree.IdentNode(id.get, Selector)
       } else {
         error("Selector with ident after dot")
         Nil
@@ -119,7 +119,7 @@ object OberonParser extends App {
     val s = string
     if (id.isDefined) {
       inc
-      IdentNode(id.get, Tree.Content(Selector))
+      Content(IdentNode(id.get, Selector))
     } else if (int.isDefined) {
       inc
       Integer(int.get)
@@ -851,7 +851,7 @@ object OberonParser extends App {
         inc
         val expr = Expression
         if (expr != Nil) {
-          Tree.Assignment(Content(IdentNode(id.get,Tree.Content(s))), expr)
+          Tree.Assignment(IdentNode(id.get,s), expr)
         } else {
           error("Assignment with Expression after Selector")
           Nil
@@ -1210,16 +1210,15 @@ object OberonParser extends App {
     System.exit(-1)
   }
   
-  def codegen(t: Tree[_]) = {
+  def codegen(abstractSyntaxTree: Tree[_]) = {
     import cip.base.CodeGen
     val codeGen = new CodeGen
     codeGen.start
-    val abstractSyntaxTree = t
-    println(t)
+    println(abstractSyntaxTree)
     abstractSyntaxTree.compile()
     println(Memory.SymbolTables)
     codeGen.close    
-    t
+    abstractSyntaxTree
   }
 
   def test(t: Tree[_]) = {

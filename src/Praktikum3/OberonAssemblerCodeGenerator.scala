@@ -9,3 +9,5 @@ object OberonCodeGenerator extends App {
   abstractSyntaxTree.compile()
   codeGen.close
 }
+
+// StandaloneCG.main(Array("assemblerCode", "0"))

@@ -1,8 +1,6 @@
 package Praktikum3
 import Praktikum3.Memory.Declarations.Descriptor
 import scala.collection.immutable.HashMap
-import cip.base.CodeGen
-import cip.instructions._
 
 object Tree {
 
@@ -16,7 +14,7 @@ object Tree {
   case class Integer(int: Symbol) extends Tree[Integer] with Expression with IndexExpression {
     override def compile(symbolTable: Map[String, Descriptor] = new HashMap) = {
       trace("Integer")
-      CodeGen.outInstr(new IntegerVal(int.value.get.toString.toInt))
+      OberonInstructions.IntegerVal(int.value.get.toString.toInt)
       Memory.Declarations.IntegerType
     }
 
@@ -35,18 +33,17 @@ object Tree {
       trace("Content")
       address match {
         case i: Ident => {
-          trace("=> Ident")
           val t = address.compile(symbolTable)
           val e = Memory.SymbolTables(i.identIdent.value.get.toString)
           e match {
             case e: ConstIdent =>
-            case _ => CodeGen.outInstr(new ContInstruction(t.size))
+            case _ => OberonInstructions.ContInstruction(t.size)
           }
           t
         }
         case _ => {
           val t = Memory.Declarations.IntegerType
-          CodeGen.outInstr(new ContInstruction(t.size))
+          OberonInstructions.ContInstruction(t.size)
           t
         }
       }
@@ -58,8 +55,8 @@ object Tree {
   case object Ident
   case class IdentNode(override val identIdent: Symbol, override val optionalIdent: Expression = Nil) extends Tree[Ident] with Ident {
     override def compile(symbolTable: Map[String, Descriptor] = new HashMap): Memory.Declarations.Descriptor = {
-      trace("IdentNode")
-      val eOp = Memory.SymbolTables(identIdent.value.get.toString);
+      trace("IdentNode(" + identIdent + ")")
+      val eOp = Memory.SymbolTables(identIdent.value.get.toString)
       if (eOp.isEmpty)
         Memory.Declarations.NilDescriptor
       else {
@@ -69,24 +66,24 @@ object Tree {
           case x: Memory.Declarations.VariableDescriptor => {
             val addr = x.address
             val t = x._type
-            CodeGen.outInstr(new IntegerVal(addr.toInt))
+            OberonInstructions.IntegerVal(addr.toInt)
             if (e.level > 0) {
               if (e.level == Memory.Level.value) {
-                CodeGen.outInstr(new GetFP())
-                CodeGen.outInstr(new AdditionInstruction())
+                OberonInstructions.GetFP
+                OberonInstructions.AdditionInstruction
               } else {
-                CodeGen.outInstr(new IntegerVal(e.level))
-                CodeGen.outInstr(new GetSL())
-                CodeGen.outInstr(new AdditionInstruction())
+                OberonInstructions.IntegerVal(e.level)
+                OberonInstructions.GetSL
+                OberonInstructions.AdditionInstruction
               }
             }
             if (x.isParameter) {
-              CodeGen.outInstr(new ContInstruction(1))
+              OberonInstructions.ContInstruction(1)
             }
-            Memory.Declarations.NilDescriptor
+            x
           }
           case x: Memory.Declarations.IntConst => {
-            CodeGen.outInstr(new IntegerVal(x.intval))
+            OberonInstructions.IntegerVal(x.intval)
             Memory.Declarations.IntegerType
           }
         }
@@ -101,7 +98,7 @@ object Tree {
   case class Str(string: Symbol) extends Expression {
     override def compile(symbolTable: Map[String, Descriptor] = new HashMap) = {
       trace("Str")
-      CodeGen.outInstr(new StringVal(string.value.get.toString));
+      OberonInstructions.StringVal(string.value.get.toString)
       Memory.Declarations.StringType
     }
 
@@ -141,7 +138,7 @@ object Tree {
   trait Expression extends Statement {
     val left: Expression = Nil
     val right: Expression = Nil
-    val value = classOf[Expression].getName
+    def value: String = "Expression"
 
     override def compile(symbolTable: Map[String, Descriptor] = new HashMap) = {
       trace("Expression -> " + value)
@@ -167,42 +164,52 @@ object Tree {
   }
 
   case class *(override val left: Expression, override val right: Expression) extends Expression {
-    override def compileOperator = CodeGen.outInstr(new MultiplicationInstruction())
+    override def compileOperator = OberonInstructions.MultiplicationInstruction
+    override def value = "*"
   }
   case class /(override val left: Expression, override val right: Expression) extends Expression {
-    override def compileOperator = CodeGen.outInstr(new DivisionInstruction())
+    override def compileOperator = OberonInstructions.DivisionInstruction
+    override def value = "/"
   }
   case class +(override val left: Expression, override val right: Expression) extends Expression {
-    override def compileOperator = CodeGen.outInstr(new AdditionInstruction())
+    override def compileOperator = OberonInstructions.AdditionInstruction
+    override def value = "+"
   }
   case class -(override val left: Expression, override val right: Expression) extends Expression {
-    override def compileOperator = CodeGen.outInstr(new SubtractionInstruction())
+    override def compileOperator = OberonInstructions.SubtractionInstruction
+    override def value = "-"
   }
   case class :=(override val left: Expression, override val right: Expression) extends Expression {
-    override def compileOperator = CodeGen.outInstr(new EqualsInstruction())
+    override def compileOperator = OberonInstructions.EqualsInstruction
+    override def value = "="
   }
   //  case class :#(override val left: Expression, override val right: Expression) extends Expression{
   //    def compileOperator = CodeGen.outInstr(new ())
   //  }
   case class <(override val left: Expression, override val right: Expression) extends Expression {
-    override def compileOperator = CodeGen.outInstr(new LessThanInstruction())
+    override def compileOperator = OberonInstructions.LessThanInstruction
+    override def value = "<"
   }
   case class <=(override val left: Expression, override val right: Expression) extends Expression {
-    override def compileOperator = CodeGen.outInstr(new LessEqualThanInstruction())
+    override def compileOperator = OberonInstructions.LessEqualThanInstruction
+    override def value = "<="
   }
   case class >(override val left: Expression, override val right: Expression) extends Expression {
-    override def compileOperator = CodeGen.outInstr(new GreaterThanInstruction())
+    override def compileOperator = OberonInstructions.GreaterThanInstruction
+    override def value = ">"
   }
   case class >=(override val left: Expression, override val right: Expression) extends Expression {
-    override def compileOperator = CodeGen.outInstr(new GreaterEqualThanInstruction())
+    override def compileOperator = OberonInstructions.GreaterEqualThanInstruction
+    override def value = ">="
   }
 
   case class Neg(override val left: Expression) extends Expression {
     override def compileOperator = {
       trace("Negative")
-      CodeGen.outInstr(new IntegerVal(-1))
-      CodeGen.outInstr(new MultiplicationInstruction())
+      OberonInstructions.IntegerVal(-1)
+      OberonInstructions.MultiplicationInstruction
     }
+    override def value = "Negative"
   }
 
   //ActualParameters  = Expression {Õ,Õ Expression}.
@@ -368,11 +375,12 @@ object Tree {
       trace("VarDeclarations")
       val d = _type.compile(symbolTable)
       //      Memory.symbolTables(Memory.Level.value).get(ident.identIdent.value.get.toString)
-      val addr = Memory.curraddr;
+      val addr = Memory.SymbolTables.currentAddress;
       d match {
         case t: Memory.Declarations.Type => {
-          val entry = Memory.Declarations.Variable(addr.toString, t);
-          Memory.curraddr = Memory.curraddr + d.size
+          val entry = Memory.Declarations.Variable(addr, t)
+          trace("d.size = " + d.size)
+          Memory.SymbolTables.currentAddress = Memory.SymbolTables.currentAddress + d.size
           Memory.SymbolTables + (ident.identIdent.value.get.toString, entry)
           next.compile(symbolTable + Tuple(ident.identIdent.value.get.toString, d));
         }
@@ -391,7 +399,7 @@ object Tree {
     override def compile(symbolTable: Map[String, Descriptor] = new HashMap) = {
       trace("Print")
       expression.compile(symbolTable)
-      CodeGen.outInstr(new PrintInstruction())
+      OberonInstructions.PrintInstruction
       Memory.Declarations.NilDescriptor
     }
     override def print(n: Int) = ->("Print", n) + expression.print(n + 1)
@@ -421,20 +429,19 @@ object Tree {
 
     override def compile(symbolTable: Map[String, Descriptor] = new HashMap) = {
       trace("Module");
-      CodeGen.outInstr(new StringVal(idStart.identIdent.value.get.toString))
-      val mainProgramStart = CodeGen.newLabel()
-      CodeGen.outInstr(new JumpInstruction(mainProgramStart))
-      CodeGen.outInstr(new LabelInstruction(mainProgramStart))
-      CodeGen.outInstr(new IntegerVal(
-        Memory.lengthDataSegmentMainProgram))
-      CodeGen.outInstr(new SetSP())
+      OberonInstructions.StringVal(idStart.identIdent.value.get.toString)
+      val mainProgramStart = OberonInstructions.newLabel
+      OberonInstructions.JumpInstruction(mainProgramStart)
+      OberonInstructions.LabelInstruction(mainProgramStart)
       Memory.SymbolTables + ("integer", Memory.Declarations.IntegerType)
       Memory.SymbolTables + ("boolean", Memory.Declarations.BooleanType)
       Memory.SymbolTables + ("string", Memory.Declarations.StringType)
       declarations.compile(Memory.SymbolTables())
+      Memory.setMainProgramLength(Memory.SymbolTables.currentAddress)
+      OberonInstructions.IntegerVal(Memory.mainProgramLength)
+      OberonInstructions.SetSP
       statement.compile(Memory.SymbolTables())
-      Memory.lengthDataSegmentMainProgram = Memory.curraddr
-      CodeGen.outInstr(new StopInstruction())
+      OberonInstructions.StopInstruction
       Memory.Declarations.NilDescriptor
     }
 
@@ -445,10 +452,10 @@ object Tree {
   case object Assignment
   case class Assignment(ident: Ident, expression: Expression) extends Statement {
     override def compile(symbolTable: Map[String, Descriptor] = new HashMap) = {
-      trace("Assignment")
-      ident.compile(symbolTable);
-      val t = expression.compile(symbolTable);
-      CodeGen.outInstr(new AssignmentInstruction(t.size));
+      trace("Assignment")      
+      val t = expression.compile(symbolTable);      
+      ident.compile(symbolTable)
+      OberonInstructions.AssignmentInstruction(t.size)
       Memory.Declarations.NilDescriptor
     }
     override def print(n: Int) = ->("Assignment", n) + ident.print(n + 1) + expression.print(n + 1)

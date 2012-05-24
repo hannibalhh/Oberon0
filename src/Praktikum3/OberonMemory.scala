@@ -7,20 +7,26 @@ object Memory {
   import Declarations._
   				  // level -> symbolTabelle
   object SymbolTables{
-      var symbolTables = Array(new HashMap[String, Descriptor])
+      private val symbolTables = Array(new HashMap[String, Descriptor])
       def +(s: String, d:Descriptor) = {
-        trace("+ map")
-        trace(Tuple(s,d))
-        trace(symbolTables(Level.value) + Tuple(s,d))
-        trace(symbolTables(Level.value))
         symbolTables(Level.value) = symbolTables(Level.value) + Tuple(s,d)
       }
       def apply(s:String) = symbolTables(Level.value).get(s)
       def apply() = symbolTables(Level.value)
-      override def toString = "SymbolTable:\n" + symbolTables.deep.toString
+      override def toString = {
+        var s = "\nSymbolTable:\n";
+        for(item <- symbolTables; i <- 0 until symbolTables.length){
+          s += "  Level " + i + "\n"
+          item.foreach{
+            case (x,y) => s += "    " + x + "->" + y
+          }
+        }
+        s
+      }
+      var currentAddress = 0
   }
-  var lengthDataSegmentMainProgram = 0
-  var curraddr = 0
+  def mainProgramLength = cip.TreeGenerator.lengthDataSegmentMainProgram
+  def setMainProgramLength(i:Int) = cip.TreeGenerator.lengthDataSegmentMainProgram = 1
   
   object Level{
     def inc = CodeGen.level +=1
@@ -35,19 +41,20 @@ object Memory {
     case class IntConst(intval: Int) extends Descriptor {
       def print(n: Int) = ->("IntConst(" + intval + ")", n)
     }
-    trait VariableDescriptor{
-      val address: String
+    trait VariableDescriptor extends Descriptor{
+      val address: Int
       val _type: Type
       val isParameter: Boolean
+      override val size = 1
     }
     case object Variable
-    case class Variable(address: String, _type: Type) extends Descriptor with VariableDescriptor {
+    case class Variable(address: Int, _type: Type) extends Descriptor with VariableDescriptor {
       def print(n: Int) = ->("Variable(address=" + address + ")", n) + _type.print(n + 1)
       val isParameter = false
     }
 
     case object ParameterVariable
-    case class ParameterVariable(address: String, _type: Type) extends Descriptor with VariableDescriptor{
+    case class ParameterVariable(address: Int, _type: Type) extends Descriptor with VariableDescriptor{
       def print(n: Int) = ->("ParameterVariable(address=" + address + ")", n) + _type.print(n + 1)
       val isParameter = true
     }
@@ -60,7 +67,7 @@ object Memory {
 
     trait Type extends Descriptor
     case object ArrayType
-    case class ArrayType(numberOfElems: Int, basetype: Type) extends Type {
+    case class ArrayType(override val size:Int = 1, numberOfElems: Int, basetype: Type) extends Type {
       def print(n: Int) = ->("ArrayType(numberOfElems=" + numberOfElems + ")", n) + basetype.print(n + 1)
     } 
 
@@ -71,6 +78,7 @@ object Memory {
 
     trait SimpleType extends Type {
       val name: String
+      override val size = 1
     }
     case object IntegerType extends SimpleType {
       val name = "IntegerType"
@@ -87,6 +95,7 @@ object Memory {
 
     object NilDescriptor extends Descriptor {
       def print(n: Int) = "NilDescriptor"
+      override val size = -1
     }
     
     trait Descriptor {
