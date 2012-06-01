@@ -40,4 +40,11 @@ public class IntegerVal extends AbstractInstruction implements Instruction {
 		myPrintln("Interpret IntVal " + intVal);
 		Interpreter.programCounter++;
 	}
+
+	@Override
+	public String toString() {
+		return "IntegerVal(intVal=" + intVal + ")";
+	}
+	
+	
 }

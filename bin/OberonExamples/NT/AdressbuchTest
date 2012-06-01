@@ -1,7 +1,9 @@
 module m;
 var
-i : integer;
+i,j : integer;
 begin
-i := 1 + 2;
-print i
+i := (1 + 2) * 10;
+j := (1 + 2) * 20;
+print i;
+print j
 end m.

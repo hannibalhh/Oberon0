@@ -34,6 +34,7 @@ public class AssignmentInstruction extends AbstractInstruction implements
 		i1 = ((IntegerVal) op1).getIntVal();
 		while (j < size) {
 			op2 = Interpreter.computationStack.pop(); // intinstr
+			System.out.println(op2);
 			i2 = ((IntegerVal) op2).getIntVal();
 			myPrintln("addr(" + i1 + ") := " + i2);
 			Interpreter.runTimeStack.set(i1 + size - (j + 1),

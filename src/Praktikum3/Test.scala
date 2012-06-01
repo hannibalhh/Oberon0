@@ -1,6 +1,11 @@
 package Praktikum3
 
 object Test extends App {
+  
+  // Arrays
+  // Records
+  // Statements
+  // Procedure (optional)
 
   println(B)
   println(new a)

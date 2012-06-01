@@ -30,4 +30,11 @@ public class StringVal extends AbstractInstruction implements Instruction {
 		myPrintln("Interpret StrInstr " + sVal);
 		Interpreter.programCounter++;
 	}
+
+	@Override
+	public String toString() {
+		return "StringVal(sVal=" + sVal + ")";
+	}
+	
+	
 }
