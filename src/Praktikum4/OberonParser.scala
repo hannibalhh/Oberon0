@@ -97,10 +97,12 @@ object OberonParser extends App {
     } else if (edgeBracketOn) {
       inc
       val expr = Expression
-      if (edgeBracketOn)
-        Expression
+      if (edgeBracketOff){
+        inc
+        expr
+      }      
       else {
-        error("Selector with } after Expression")
+        error("Selector with ] after Expression")
         Nil
       }
     } else {
@@ -1083,12 +1085,9 @@ object OberonParser extends App {
       inc
       if (bracketOn) {
         ProcedureCall(id)
-      } else if (_def) {
-        Assignment(id)
       } else {
-        error("Statement with ( or := after ident")
-        Nil
-      }
+        Assignment(id)
+      } 
     } else if (ifst) {
       IfStatement
     } else if (p) {

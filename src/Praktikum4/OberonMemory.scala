@@ -56,7 +56,8 @@ object Memory {
       val address: Int
       val _type: Type
       val isParameter: Boolean
-      override val size = 1
+      override val size = _type.size
+      override def toInt = address
     }
     case object Variable
     case class Variable(address: Int, _type: Type) extends Descriptor with VariableDescriptor {
@@ -74,17 +75,21 @@ object Memory {
     case class Procedcure(name: String, startaddress: Int, lengthparblock: Int,
       framesize: Int, params: ParameterVariable) extends Descriptor {
       def print(n: Int) = ->("Procedcure(name=" + name + "startaddress=" + startaddress + "lengthparblock=" + lengthparblock + "framesize=" + framesize + ")", n) + params.print(n + 1)
+      override def toInt = startaddress
     }
 
     trait Type extends Descriptor
     case object ArrayType
-    case class ArrayType(override val size: Int = 1, numberOfElems: Int, basetype: Type) extends Type {
+    case class ArrayType(numberOfElems: Int, basetype: Type) extends Type {
       def print(n: Int) = ->("ArrayType(numberOfElems=" + numberOfElems + ")", n) + basetype.print(n + 1)
+      override def toInt = numberOfElems
+      override val size: Int = numberOfElems*basetype.size
     }
 
     case object RecordType
     case class RecordType(symbolTable: Map[String, Descriptor]) extends Type {
       def print(n: Int) = ->("RecordType", n) + ->(symbolTable.toString, n + 1)
+      override def toInt = symbolTable.size
     }
 
     trait SimpleType extends Type {
@@ -114,6 +119,7 @@ object Memory {
       val level = Level.value
 
       def print(n: Int): String
+      def toInt: Int = -1
       override def toString = print(0)
     }
 

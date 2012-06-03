@@ -4,7 +4,7 @@ object OberonDebug {
 
   val instructions = true
   val memory = true
-  val parser = false
+  val parser = true
   val compile = true
   
   val abstractSyntaxTree = false

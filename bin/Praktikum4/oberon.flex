@@ -1,6 +1,6 @@
-package Praktikum2;
-import static Praktikum2.Token.*;
-import Praktikum2.Symbol;
+package Praktikum4;
+import static Praktikum4.Token.*;
+import Praktikum4.Symbol;
 import JFlex.sym;
 %%
 %public
@@ -11,6 +11,11 @@ import JFlex.sym;
 %ignorecase
 %cup
 %{
+
+  public String trim(String s){
+    return s.subSequence(1, s.length()-1).toString(); 
+  }
+  
   public boolean isEOF(){
   	return zzAtEOF;
   } 
@@ -31,11 +36,11 @@ import JFlex.sym;
     return new Symbol(type, line(), column(), scala.Option.apply(value));
   }
 %}
-
+charAll = 			[a-zA-Z\,\.\-\:\#\[\]\(\)\}\{\<\=\\\/\*\+]
 char = 			[a-zA-Z]
 digit = 		[0-9]
 ident = 		{char}({char}|{digit})*
-string = 		(\")({char} | {digit} | {blank})+(\")
+string = 		(\")({charAll} | {digit} | {blank})+(\")
 blank=			[ \t\n\r]
 rowComment = 	"//"[^\r\n]*
 %%
@@ -83,7 +88,7 @@ MODULE      	{return symbol(MODULE());}
 {blank}*		{return symbol(blank());}
 {ident}			{return symbol(ident(),yytext());}
 {digit}*			{return symbol(integer(),yytext());}
-{string}		{return symbol(string(),yytext());}
+{string}		{return symbol(string(),trim(yytext()));}
 ^{rowComment}	{}
 \n 				{}
 \r				{}

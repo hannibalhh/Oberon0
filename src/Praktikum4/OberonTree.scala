@@ -18,6 +18,8 @@ object Tree {
       OberonInstructions.IntegerVal(int.value.get.toString.toInt)
       Memory.Declarations.IntegerType
     }
+    
+    override def num = int.value.get.toString.toInt
 
     override def print(n: Int) = ->("Integer(" + int + ")", n)
   }
@@ -26,6 +28,7 @@ object Tree {
   trait Ident extends Tree[Ident] with Expression with Type with Declarations with ConstIdent {
     val identIdent: Symbol = Symbol("", -1, -1)
     val optionalIdent: Expression = Nil
+    override def num = Memory.SymbolTables(identIdent.value.toString).get.toInt
   }
 
   case object Content
@@ -224,17 +227,30 @@ object Tree {
   }
 
   //IndexExpression  = integer | ConstIdent.
-  trait IndexExpression extends Tree[IndexExpression]
+  trait IndexExpression extends Tree[IndexExpression]{
+    def num = Int.MinValue
+  }
 
   //ConstIdent       = ident.
-  trait ConstIdent extends IndexExpression
+  trait ConstIdent extends IndexExpression{
+    override def num = Int.MinValue
+  }
 
   //ArrayType = ÕARRAYÕ Õ[Õ IndexExpression Õ]Õ ÕOFÕ Type.
   case object ArrayType
   case class ArrayType(elemArrayType: IndexExpression, _typeArrayType: Type) extends Type {
     override def compile(symbolTable: Map[String, Descriptor] = new HashMap) = {
       trace("ArrayType")
-      Memory.Declarations.IntegerType
+      val num = elemArrayType.num
+      val desc = _typeArrayType.compile()
+      val size = desc.size
+      desc match {
+        case t: Memory.Declarations.Type => Memory.Declarations.ArrayType(size* num, t)
+        case x => {
+          error("no Type Descriptor " +  x)
+          Memory.Declarations.NilDescriptor
+        } 
+      }     
     }
     override def print(n: Int) = ->("ArrayType", n) + elemArrayType.print(n + 1) + _typeArrayType.print(n + 1)
   }

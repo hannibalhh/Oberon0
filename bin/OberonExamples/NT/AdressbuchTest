@@ -1,9 +1,11 @@
 module m;
 var
-i,j : integer;
+i,j : array [20] of integer;
 begin
-i := (1 + 2) * 10;
-j := (1 + 2) * i;
-print i;
-print j
+i[0] := (1 + 2) * 20;
+j[0] := (1 + 2) * i;
+print "i[0]: ";
+print i[0];
+print "j[0]: ";
+print j[0]
 end m.
