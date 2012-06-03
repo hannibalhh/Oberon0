@@ -11,7 +11,7 @@ object Memory {
     def +(s: String, d: Descriptor) = {
       traceN("new entry: " + s + " -> " + d)
       symbolTables(Level.value) = symbolTables(Level.value) + Tuple(s, d)
-      trace("currentAddress: inc " + currentAddress + " + " + d.size + " = " + (currentAddress+d.size) + "")
+      trace("currentAddress: " + currentAddress + " + " + d.size + " = " + (currentAddress+d.size) + "")
       incCurrAddr(d.size)
     }
     def apply(s: String) = symbolTables(Level.value).get(s)

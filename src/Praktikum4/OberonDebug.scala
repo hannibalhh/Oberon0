@@ -7,6 +7,6 @@ object OberonDebug {
   val parser = false
   val compile = true
   
-  val abstractSyntaxTree = true
+  val abstractSyntaxTree = false
   val symbolTable = true;
 }

@@ -16,7 +16,7 @@ public class StopInstruction extends AbstractInstruction implements Instruction 
 	{
 		myPrint(Interpreter.programCounter + " ");
 		myPrintln("Interpret StopInstruction");
-		System.out.println("Und Tschüss!");
+		System.out.println("------------------------ stop");
 		Interpreter.programCounter++;
 	};
 

@@ -49,7 +49,7 @@ public class Interpreter {
 		instructionStream = new ObjectInputStream(inStream);
 
 		if (Debug.debug > 0)
-			System.out.println("== code für Interpretierer wieder einlesen ==");
+			System.out.println("== code fŸr Interpretierer wieder einlesen ==");
 
 		instructions = (ArrayList<Instruction>) instructionStream.readObject();
 		programCounter = 0;

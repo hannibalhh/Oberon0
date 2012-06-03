@@ -199,8 +199,7 @@ public class StandaloneCG {
 
 	public static void main(String[] argv) throws ClassNotFoundException {
 		String infile;
-		System.out.println("Standalone CodeGen Version 0.01");
-
+		System.out.println("------------------------ run");
 		if (argv.length < 2) {
 			System.out
 					.println("Usage : java StandAloneCG <inputfile> debug=(0|1)");

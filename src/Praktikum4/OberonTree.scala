@@ -8,6 +8,7 @@ object Tree {
     override def toString = "."
     override def print(n: Int): String = ""
     override def compile(symbolTable: Map[String, Descriptor] = new HashMap) = Memory.Declarations.NilDescriptor
+    override def isDefined = false
   }
 
   case object Integer
@@ -371,53 +372,41 @@ object Tree {
 
   case object VarDeclarations
   case class VarDeclarations(ident: Ident, _type: Type, override val next: Declarations = Nil) extends Declarations {
-    
-// override def compile(symbolTable: Map[String, Descriptor] = new HashMap) = {
-//      def compileIdent(symbolTable: Map[String, Descriptor] = new HashMap, ident: Ident): Map[String, Descriptor] = {
-//        trace("VarDeclarations:CompileIdent")
-//        d match {
-//          case t: Memory.Declarations.Type => {
-//            val entry = Memory.Declarations.Variable(addr, t)
-//            trace("d.size = " + d.size)
-//            Memory.SymbolTables + (ident.identIdent.value.get.toString, entry)
-//          }
-//          case x =>
-//            {
-//              error("TypeDescriptor is missing: " + x)
-//            }
-//          
-//            compileIdent(symbolTable + Tuple(ident.identIdent.value.get.toString, d), ident.next)
-//        }
-//      }
-//      trace("VarDeclarations")
-//      val d = _type.compile(symbolTable)
-//      val addr = Memory.SymbolTables.currentAddress
-//      compileIdent(symbolTable, ident)
-//      next.compile()
-//
-//    }
-    
+
     override def compile(symbolTable: Map[String, Descriptor] = new HashMap) = {
       trace("VarDeclarations")
       val d = _type.compile(symbolTable)
-      val addr = Memory.SymbolTables.currentAddress
-      d match {
-        case t: Memory.Declarations.Type => {
-          val entry = Memory.Declarations.Variable(addr, t)
-          trace("d.size = " + d.size)
-          Memory.SymbolTables + (ident.identIdent.value.get.toString, entry)
-        }
-        case x => {
-          error("TypeDescriptor is missing: " + x)
-        }
+      def compileIdent(ident: Expression): Memory.Declarations.Descriptor = {
+        trace("VarDeclarations: compileIdent: " + ident + " defined " + ident.isDefined)
+        if (ident.isDefined) {
+          d match {
+            case t: Memory.Declarations.Type => {
+              val entry = Memory.Declarations.Variable(Memory.SymbolTables.currentAddress, t)
+              trace("d.size = " + d.size)
+              ident match {
+                case i: Ident => {
+                  Memory.SymbolTables + (i.identIdent.value.get.toString, entry)
+                  compileIdent(i.optionalIdent)
+                }
+                case x => {
+                  error("Ident is missing: " + x)
+                  Memory.Declarations.NilDescriptor
+                }
+              }
+            }
+            case x => {
+              error("TypeDescriptor is missing: " + x)
+              Memory.Declarations.NilDescriptor
+            }
+          }
+        } else
+          Memory.Declarations.NilDescriptor
       }
-      next.compile(symbolTable + Tuple(ident.identIdent.value.get.toString, d))
-     
+      compileIdent(ident)
+      next.compile()
     }
-    
-    
-    override def print(n: Int) = ->("VarDeclarations", n) + ident.print(n + 1) + _type.print(n + 1) + next.print(n + 1)
 
+    override def print(n: Int) = ->("VarDeclarations", n) + ident.print(n + 1) + _type.print(n + 1) + next.print(n + 1)
   }
 
   case object Print
@@ -478,8 +467,8 @@ object Tree {
   case object Assignment
   case class Assignment(ident: Ident, expression: Expression) extends Statement {
     override def compile(symbolTable: Map[String, Descriptor] = new HashMap) = {
-      trace("Assignment")      
-      val t = expression.compile(symbolTable);      
+      trace("Assignment")
+      val t = expression.compile(symbolTable);
       ident.compile(symbolTable)
       OberonInstructions.AssignmentInstruction(t.size)
       Memory.Declarations.NilDescriptor
@@ -531,6 +520,7 @@ object Tree {
   }
 
   sealed trait Tree[+T] {
+    def isDefined = true
     def print(n: Int): String
     override def toString = "AbstractSyntaxTree:\n" + print(0)
     def compile(symbolTable2: Map[String, Descriptor] = new HashMap): Memory.Declarations.Descriptor = Memory.Declarations.NilDescriptor
