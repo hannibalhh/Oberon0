@@ -1,7 +1,0 @@
-34/4	-2	ab
-23-34+15*4/2
-// das ist ein Kommentar
--31+122
-//	  
-18
-END		        

@@ -1,7 +1,0 @@
-IF w <= r
-THEN 
-	r := r - w; 
-	q := q + 1 
-ELSE
-	r := r - w 
-END

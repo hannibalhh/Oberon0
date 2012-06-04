@@ -1,5 +1,0 @@
-pushi,addr(V)
-pushi,2
-pushi,20
-MUL
-ADD 

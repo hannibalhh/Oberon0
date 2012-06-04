@@ -1,8 +1,0 @@
-module m;
-var
-i,j : integer;
-begin
-i := -(1 + 2) * 10;
-print i;
-print i
-end m.

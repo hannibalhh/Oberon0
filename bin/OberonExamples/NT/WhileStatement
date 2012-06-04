@@ -1,3 +1,0 @@
-WHILE w > y DO
-		q := 2 * q; w := w / 2
-END
