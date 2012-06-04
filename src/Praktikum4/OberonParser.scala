@@ -7,7 +7,7 @@ object OberonParser extends App {
   import Praktikum4.OberonScanner._
   import Praktikum4.Tree._
 
-  val scanner = oberonScanner("src/OberonExamples/NT/AdressbuchTest")
+  val scanner = oberonScanner("src/OberonExamples/Compile/EasyArray")
   var current = next
 
   OberonCodeGenerator.run(parser)
@@ -82,14 +82,14 @@ object OberonParser extends App {
    */
 
   //Selector         = {Õ.Õ ident | Õ[Õ Expression Õ]Õ}. // tested
-  def Selector: Tree.Expression = {
+  def Selector(before:Tree.Ident): Tree.Expression = {
     trace("Selector")
     if (DOT) {
       inc
       val id = ident
       if (id.isDefined) {
         inc
-        Tree.IdentNode(id.get, Selector)
+        Selector(Tree.IdentNode(id.get))
       } else {
         error("Selector with ident after dot")
         Nil
@@ -99,7 +99,7 @@ object OberonParser extends App {
       val expr = Expression
       if (edgeBracketOff){
         inc
-        expr
+        ArrayReference(before,expr)
       }      
       else {
         error("Selector with ] after Expression")
@@ -107,7 +107,7 @@ object OberonParser extends App {
       }
     } else {
       // no error because its optional
-      Nil
+      before
     }
   }
 
@@ -121,7 +121,7 @@ object OberonParser extends App {
     val s = string
     if (id.isDefined) {
       inc
-      Content(IdentNode(id.get, Selector))
+      Content(Selector(IdentNode(id.get)))
     } else if (int.isDefined) {
       inc
       Integer(int.get)
@@ -848,12 +848,12 @@ object OberonParser extends App {
   def Assignment(id: Option[Symbol]): Statement = {
     trace("Assignment")
     if (id.isDefined) {
-      val s = Selector
+      val s = Selector(IdentNode(id.get))
       if (_def) {
         inc
         val expr = Expression
         if (expr != Nil) {
-          Tree.Assignment(IdentNode(id.get, s), expr)
+          Tree.Assignment(s, expr)
         } else {
           error("Assignment with Expression after Selector")
           Nil

@@ -44,7 +44,7 @@ public class TreeGenerator {
 	public static void inSymbol() {
 		try {
 			while ((nextsymbol = scanner.yylex()) == Oberon0Lexer.whitespace) {
-				System.out.println(Oberon0Lexer.line);
+				//System.out.println(Oberon0Lexer.line);
 			}
 		} catch (java.io.FileNotFoundException e) {
 			System.out.println("File not found : \"" + infile + "\"");
@@ -981,7 +981,7 @@ public class TreeGenerator {
 		CodeGen myCodeGen = null;
 		TreeGenerator recursiveDecentParser = new TreeGenerator();
 
-		System.out.println("Recursive Descent - Version 1.01");
+		System.out.println("------------------------ start");
 
 		if (argv.length < 2) {
 			System.out

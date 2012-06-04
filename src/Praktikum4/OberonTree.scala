@@ -18,7 +18,7 @@ object Tree {
       OberonInstructions.IntegerVal(int.value.get.toString.toInt)
       Memory.Declarations.IntegerType
     }
-    
+
     override def num = int.value.get.toString.toInt
 
     override def print(n: Int) = ->("Integer(" + int + ")", n)
@@ -35,15 +35,32 @@ object Tree {
   case class Content(address: Expression) extends Ident {
     override def compile(symbolTable: Map[String, Descriptor] = new HashMap) = {
       trace("Content")
-      address match {
-        case i: Ident => {
-          val t = address.compile(symbolTable)
-          val e = Memory.SymbolTables(i.identIdent.value.get.toString)
-          e match {
-            case e: ConstIdent =>
-            case _ => OberonInstructions.ContInstruction(t.size)
+      def compileIdent(i: Ident): Memory.Declarations.Descriptor = {
+        val t = address.compile(symbolTable)
+        trace("!!" + t)
+        val e = Memory.SymbolTables(i.identIdent.value.get.toString)
+        e match {
+          case e: ConstIdent =>
+          case _ => {
+            t match {
+              case v: Memory.Declarations.Variable => {
+                v._type match {
+                  case a: Memory.Declarations.ArrayType => OberonInstructions.ContInstruction(a.basetype.size)
+                  case _ => OberonInstructions.ContInstruction(v._type.size)
+                }
+              }
+            }
           }
-          t
+        }
+        t
+      }
+      address match {
+        case arrref: ArrayReference => {
+          compileIdent(arrref.ident)
+//          arrref.expr.compile()
+        }
+        case i: Ident => {
+          compileIdent(i)
         }
         case _ => {
           val t = Memory.Declarations.IntegerType
@@ -227,12 +244,12 @@ object Tree {
   }
 
   //IndexExpression  = integer | ConstIdent.
-  trait IndexExpression extends Tree[IndexExpression]{
+  trait IndexExpression extends Tree[IndexExpression] {
     def num = Int.MinValue
   }
 
   //ConstIdent       = ident.
-  trait ConstIdent extends IndexExpression{
+  trait ConstIdent extends IndexExpression {
     override def num = Int.MinValue
   }
 
@@ -245,12 +262,12 @@ object Tree {
       val desc = _typeArrayType.compile()
       val size = desc.size
       desc match {
-        case t: Memory.Declarations.Type => Memory.Declarations.ArrayType(size* num, t)
+        case t: Memory.Declarations.Type => Memory.Declarations.ArrayType(size * num, t)
         case x => {
-          error("no Type Descriptor " +  x)
+          error("no Type Descriptor " + x)
           Memory.Declarations.NilDescriptor
-        } 
-      }     
+        }
+      }
     }
     override def print(n: Int) = ->("ArrayType", n) + elemArrayType.print(n + 1) + _typeArrayType.print(n + 1)
   }
@@ -479,18 +496,49 @@ object Tree {
     override def print(n: Int) = ->("Module", n) + idStart.print(n + 1) + declarations.print(n + 1) + statement.print(n + 1) + idEnd.print(n + 1)
   }
 
+  case object ArrayReference
+  case class ArrayReference(ident: Ident, expr: Expression) extends Tree[ArrayReference] with Expression {
+
+    override def compile(symbolTable: Map[String, Descriptor] = new HashMap) = {
+      trace("ArrayReference")
+      val basetype = ident.compile()
+      expr.compile()
+      OberonInstructions.IntegerVal {
+        basetype match {
+          case v: Memory.Declarations.Variable => {
+            v._type match {
+              case a: Memory.Declarations.ArrayType => {
+                a.basetype.size
+              }
+              case _ => {
+                basetype.size
+              }
+            }
+          }
+        }
+      }
+      OberonInstructions.MultiplicationInstruction
+      OberonInstructions.AdditionInstruction
+      Memory.Declarations.NilDescriptor
+      basetype
+    }
+
+    override def print(n: Int) = ->("ArrayReference", n) + ident.print(n + 1) + expr.print(n + 1)
+  }
+
   //Assignment        = ident Selector Õ:=Õ Expression
   case object Assignment
-  case class Assignment(ident: Ident, expression: Expression) extends Statement {
+  case class Assignment(ident: Expression, expression: Expression) extends Statement {
+
     override def compile(symbolTable: Map[String, Descriptor] = new HashMap) = {
       trace("Assignment")
-      val t = expression.compile(symbolTable);
-      ident.compile(symbolTable)
+      val t = expression.compile(symbolTable)
+      ident.compile()
       OberonInstructions.AssignmentInstruction(t.size)
       Memory.Declarations.NilDescriptor
     }
-    override def print(n: Int) = ->("Assignment", n) + ident.print(n + 1) + expression.print(n + 1)
 
+    override def print(n: Int) = ->("Assignment", n) + ident.print(n + 1) + expression.print(n + 1)
   }
 
   //ProcedureCall = ident Õ(Õ [ActualParameters] Õ)Õ.
