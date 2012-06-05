@@ -1,13 +1,18 @@
 module m;
 var
-x : integer;
+x, j : integer;
 begin
 x := 3;
-if x = 4 then
-	print x
-elsif x = 3 then
-	print "juhu"
-else
-	print "so nich"
-end
+j := 0;
+while j <= 10 do
+	if x = 4 then
+		print x
+	elsif x = 3 then
+		if j = 5*2 then print "succ" end;
+		print "juhu"
+	else
+		print "so nich"
+	end;
+	j := j + 1	
+end	
 end m.

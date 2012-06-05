@@ -409,7 +409,6 @@ object Tree {
       trace("VarDeclarations")
       val d = _type.compile(symbolTable)
       def compileIdent(ident: Expression): Memory.Declarations.Descriptor = {
-        trace("VarDeclarations: compileIdent: " + ident + " defined " + ident.isDefined)
         if (ident.isDefined) {
           d match {
             case t: Memory.Declarations.Type => {
@@ -559,9 +558,7 @@ object Tree {
       trace("IfStatement")
       val l1 = OberonInstructions.newLabel
       val l2 = OberonInstructions.newLabel
-      val con = condition.compile()
-      trace("ififi")
-      trace(con)
+      condition.compile()
       OberonInstructions.BranchFalseInstruction(l1)
       statementSequence.compile()
       OberonInstructions.JumpInstruction(l2)
