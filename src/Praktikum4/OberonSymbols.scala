@@ -26,7 +26,7 @@ object Token{
   val READ = "READ"
   val END = "END"
   val ELSE = "ELSE"
-  val ELSEIF = "ELSEIF"
+  val ELSIF = "ELSIF"
   val IF = "IF"
   val WHILE = "WHILE"
   val REPEAT = "REPEAT"

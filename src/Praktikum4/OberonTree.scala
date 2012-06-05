@@ -37,7 +37,6 @@ object Tree {
       trace("Content")
       def compileIdent(i: Ident): Memory.Declarations.Descriptor = {
         val t = address.compile(symbolTable)
-        trace("!!" + t)
         val e = Memory.SymbolTables(i.identIdent.value.get.toString)
         e match {
           case e: ConstIdent =>
@@ -57,7 +56,7 @@ object Tree {
       address match {
         case arrref: ArrayReference => {
           compileIdent(arrref.ident)
-//          arrref.expr.compile()
+          //          arrref.expr.compile()
         }
         case i: Ident => {
           compileIdent(i)
@@ -555,12 +554,23 @@ object Tree {
   //	{ÕELSIFÕ Expression ÕTHENÕ StatementSequence}
   //  	[ÕELSEÕ StatementSequence] ÕENDÕ.
   case object IfStatement
-  case class IfStatement(condition: Expression, statementSequence: Statement, ifStatement: Tree[IfStatement], alternatve: Statement = Nil) extends Statement with Tree[IfStatement] {
+  case class IfStatement(condition: Expression, statementSequence: Statement, alternatve: Statement = Nil) extends Statement with Tree[IfStatement] {
     override def compile(symbolTable: Map[String, Descriptor] = new HashMap) = {
       trace("IfStatement")
+      val l1 = OberonInstructions.newLabel
+      val l2 = OberonInstructions.newLabel
+      val con = condition.compile()
+      trace("ififi")
+      trace(con)
+      OberonInstructions.BranchFalseInstruction(l1)
+      statementSequence.compile()
+      OberonInstructions.JumpInstruction(l2)
+      OberonInstructions.LabelInstruction(l1)
+      alternatve.compile()
+      OberonInstructions.LabelInstruction(l2)
       Memory.Declarations.NilDescriptor
     }
-    override def print(n: Int) = ->("IfStatement", n) + condition.print(n + 1) + statementSequence.print(n + 1) + ifStatement.print(n + 1) + alternatve.print(n + 1)
+    override def print(n: Int) = ->("IfStatement", n) + condition.print(n + 1) + statementSequence.print(n + 1) + alternatve.print(n + 1)
   }
 
   //WhileStatement = ÕWHILEÕ Expression ÕDOÕ StatementSequence ÕENDÕ.
@@ -568,6 +578,14 @@ object Tree {
   case class WhileStatement(condition: Expression, statement: Statement) extends Statement {
     override def compile(symbolTable: Map[String, Descriptor] = new HashMap) = {
       trace("WhileStatement")
+      val l1 = OberonInstructions.newLabel
+      val l2 = OberonInstructions.newLabel
+      OberonInstructions.LabelInstruction(l1)
+      condition.compile(symbolTable);
+      OberonInstructions.BranchFalseInstruction(l2)
+      statement.compile(symbolTable);
+      OberonInstructions.JumpInstruction(l1)
+      OberonInstructions.LabelInstruction(l2)
       Memory.Declarations.NilDescriptor
     }
     override def print(n: Int) = ->("WhileStatement", n) + condition.print(n + 1) + statement.print(n + 1)
@@ -578,6 +596,14 @@ object Tree {
   case class RepeatStatement(statement: Statement, condition: Expression) extends Statement {
     override def compile(symbolTable: Map[String, Descriptor] = new HashMap) = {
       trace("RepeatStatement")
+      val l1 = OberonInstructions.newLabel
+      val l2 = OberonInstructions.newLabel
+      OberonInstructions.LabelInstruction(l1)
+      statement.compile(symbolTable);
+      condition.compile(symbolTable);
+      OberonInstructions.BranchFalseInstruction(l2)      
+      OberonInstructions.JumpInstruction(l1)
+      OberonInstructions.LabelInstruction(l2)
       Memory.Declarations.NilDescriptor
     }
     override def print(n: Int) = ->("RepeatStatement", n) + condition.print(n + 1) + statement.print(n + 1)

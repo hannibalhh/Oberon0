@@ -1,0 +1,13 @@
+module m;
+var
+x : integer;
+begin
+x := 3;
+if x = 4 then
+	print x
+elsif x = 3 then
+	print "juhu"
+else
+	print "so nich"
+end
+end m.

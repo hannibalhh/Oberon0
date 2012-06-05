@@ -1,0 +1,20 @@
+module m;
+var
+i,j : array [6] of integer;
+k : integer;
+begin
+i[0] := 0 + 10;
+i[1] := 1 + 10;
+i[2] := 2 + 10;
+k := 1;
+i[3] := 3 + 10;
+i[4] := 4 + 10;
+i[5] := 5;
+print i[0];
+print i[1];
+print i[2];
+print i[3];
+print i[4];
+print i[5];
+print k
+end m.

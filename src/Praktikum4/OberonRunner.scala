@@ -3,6 +3,7 @@ import cip.standaloneCodeGen.StandaloneCG
 
 object OberonRunner extends App{
   run
-  def run = StandaloneCG.main(Array("assemblerCode", "0"))
-  def runCorrect = StandaloneCG.main(Array("assemblerCorrectCode", "0"))
+  def run = StandaloneCG.main(Array("assemblerCode", debug))
+  def runCorrect = StandaloneCG.main(Array("assemblerCorrectCode", debug))
+  private def debug = if (OberonDebug.interpreter) "1" else "0" 
 }

@@ -7,7 +7,7 @@ object OberonParser extends App {
   import Praktikum4.OberonScanner._
   import Praktikum4.Tree._
 
-  val scanner = oberonScanner("src/OberonExamples/Compile/EasyArray")
+  val scanner = oberonScanner("src/OberonExamples/Compile/IfIf")
   var current = next
 
   OberonCodeGenerator.run(parser)
@@ -62,7 +62,7 @@ object OberonParser extends App {
   def READ = checkPrimitive(Token.READ)
   def END = checkPrimitive(Token.END)
   def ELSE = checkPrimitive(Token.ELSE)
-  def ELSEIF = checkPrimitive(Token.ELSEIF)
+  def ELSIF = checkPrimitive(Token.ELSIF)
   def IF = checkPrimitive(Token.IF)
   def WHILE = checkPrimitive(Token.WHILE)
   def REPEAT = checkPrimitive(Token.REPEAT)
@@ -82,7 +82,7 @@ object OberonParser extends App {
    */
 
   //Selector         = {Õ.Õ ident | Õ[Õ Expression Õ]Õ}. // tested
-  def Selector(before:Tree.Ident): Tree.Expression = {
+  def Selector(before: Tree.Ident): Tree.Expression = {
     trace("Selector")
     if (DOT) {
       inc
@@ -97,11 +97,10 @@ object OberonParser extends App {
     } else if (edgeBracketOn) {
       inc
       val expr = Expression
-      if (edgeBracketOff){
+      if (edgeBracketOff) {
         inc
-        ArrayReference(before,expr)
-      }      
-      else {
+        ArrayReference(before, expr)
+      } else {
         error("Selector with ] after Expression")
         Nil
       }
@@ -939,29 +938,12 @@ object OberonParser extends App {
           val sts = StatementSequence
           if (sts != Nil) {
             val elseif = OptionalELSIF
-            if (ELSE) {
+            if (END) {
               inc
-              val sts2 = StatementSequence
-              if (sts2 != Nil) {
-                if (END) {
-                  inc
-                  Tree.IfStatement(expr, sts, elseif, sts2)
-                } else {
-                  error("IfStatement with END after StatementSequence")
-                  Nil
-                }
-              } else {
-                error("IfStatement with StatementSequence after ELSE")
-                Nil
-              }
+              Tree.IfStatement(expr, sts, elseif)
             } else {
-              if (END) {
-                inc
-                Tree.IfStatement(expr, sts, elseif)
-              } else {
-                error("IfStatement with END after StatementSequence")
-                Nil
-              }
+              error("IfStatement with END after StatementSequence")
+              Nil
             }
           } else {
             error("IfStatement with StatementSequence after THEN")
@@ -981,8 +963,8 @@ object OberonParser extends App {
     }
   }
 
-  def OptionalELSIF: Tree[IfStatement] = {
-    if (ELSEIF) {
+  def OptionalELSIF: Statement = {
+    if (ELSIF) {
       inc
       val expr = Expression
       if (expr != Nil) {
@@ -1004,8 +986,11 @@ object OberonParser extends App {
         Nil
       }
     } else {
-      // no error because its optional
-      Nil
+      if (ELSE) {
+        inc
+        StatementSequence
+      } else
+        Nil
     }
   }
 
@@ -1087,7 +1072,7 @@ object OberonParser extends App {
         ProcedureCall(id)
       } else {
         Assignment(id)
-      } 
+      }
     } else if (ifst) {
       IfStatement
     } else if (p) {

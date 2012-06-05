@@ -1,0 +1,10 @@
+module m;
+var
+x : integer;
+begin
+x := 0;
+while x < 10 DO
+	print x;
+	x := x + 1
+end
+end m.

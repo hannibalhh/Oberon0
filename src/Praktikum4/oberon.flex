@@ -70,8 +70,8 @@ DO       		{return symbol(DO());}
 PRINT       	{return symbol(PRINT());}
 READ       		{return symbol(READ());}
 END       		{return symbol(END());}
+ELSIF       	{return symbol(ELSIF());}
 ELSE       		{return symbol(ELSE());}
-ESEIF       	{return symbol(ELSEIF());}
 IF       		{return symbol(IF());}
 WHILE       	{return symbol(WHILE());}
 REPEAT       	{return symbol(REPEAT());}

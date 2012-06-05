@@ -1,0 +1,11 @@
+module m;
+var
+x : integer;
+begin
+x := 0;
+if x < 0 then
+	print x
+else
+	print "so nich"
+end
+end m.

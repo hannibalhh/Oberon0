@@ -49,7 +49,7 @@ public class WhileNode extends AbstractNode {
 		l2 = CodeGen.newLabel();
 		CodeGen.outInstr(new LabelInstruction(l1));
 		condition.compile(symbolTable);
-		CodeGen.outInstr(new BranchFalseInstruction(l2));
+		CodeGen.outInstr(new BranchTrueInstruction(l2));
 		if (statement != null)
 			statement.compile(symbolTable);
 		CodeGen.outInstr(new JumpInstruction(l1));

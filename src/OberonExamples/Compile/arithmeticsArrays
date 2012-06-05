@@ -1,0 +1,14 @@
+module m;
+var
+i,j : array [20] of integer;
+k : integer;
+begin
+i[0] := (1 + 2) * 20;
+j[0] := (1 + 2) * i[0];
+k := 1 * j[0];
+print "i[0]: ";
+print i[0];
+print "j[0]: ";
+print j[0];
+print k
+end m.

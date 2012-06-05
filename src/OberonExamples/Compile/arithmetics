@@ -1,0 +1,9 @@
+module m;
+var
+i,j : integer;
+begin
+i := -(1 + 2) * 10;
+j := (1 + 2) * i;
+print i;
+print j
+end m.
