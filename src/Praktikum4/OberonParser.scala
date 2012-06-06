@@ -7,7 +7,7 @@ object OberonParser extends App {
   import Praktikum4.OberonScanner._
   import Praktikum4.Tree._
 
-  val scanner = oberonScanner("src/OberonExamples/Compile/IfIf")
+  val scanner = oberonScanner("src/OberonExamples/Compile/RecordSimple")
   var current = next
 
   OberonCodeGenerator.run(parser)
@@ -89,7 +89,7 @@ object OberonParser extends App {
       val id = ident
       if (id.isDefined) {
         inc
-        Selector(Tree.IdentNode(id.get))
+        RecordReference(before, Tree.IdentNode(id.get))
       } else {
         error("Selector with ident after dot")
         Nil
@@ -463,9 +463,10 @@ object OberonParser extends App {
       val f = FieldList
       if (f.isDefined) {
         FieldListNode(f, OptionalFieldList)
-      } else
+      } else {
         error("OptionalFieldList with FieldList after ;")
-      Nil
+        Nil
+      }
     } else {
       // no error because its optional
       Nil

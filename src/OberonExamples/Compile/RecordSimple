@@ -1,0 +1,12 @@
+module m;
+var 
+a,b : 
+	record
+		x,y : integer;
+		z : integer
+	end
+;
+begin
+a.x := 25;
+print a.x
+end m.

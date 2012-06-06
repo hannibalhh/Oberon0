@@ -8,7 +8,7 @@ object OberonDebug {
   val instructions = true
   val memory = true
   
-  val abstractSyntaxTree = false
+  val abstractSyntaxTree = true
   val symbolTable = true;
   
   val interpreter = false;
