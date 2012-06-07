@@ -564,7 +564,7 @@ object Tree {
         newTable = desc match {
           case r: Memory.Declarations.RecordType => newTable + (name, concreteRecordType(r))
           case t: Memory.Declarations.Type => {
-            newTable + (name, Memory.Declarations.Variable(c + i, t))
+            newTable + (name, Memory.Declarations.Variable(i, t))
           }
           case x => {
             error("concreteRecordType:Type", x)

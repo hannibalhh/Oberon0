@@ -14,7 +14,5 @@ b.y := 4;
 print a.x;
 print a.y;
 print b.x;
-print b.y;
-print a;
-print b
+print b.y
 end m.
