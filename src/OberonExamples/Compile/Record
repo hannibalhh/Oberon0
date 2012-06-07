@@ -2,8 +2,8 @@ module m;
 var 
 a,b : 
 	record
-		x : integer;
-		y : integer
+		x,x2,x3 : integer;
+		y,y1,y2 : integer
 	end
 ;
 begin

@@ -8,8 +8,14 @@ object Memory {
   // level -> symbolTabelle
   object SymbolTables {
     private val symbolTables = Array(Declarations.SymbolTable(new HashMap[String, Descriptor]))
+   
+    def +(s: String, d: SimpleType) = {
+      trace("new entry: " + s + " -> " + d)
+      symbolTables(Level.value) = symbolTables(Level.value) + (s, d)
+    }
+    
     def +(s: String, d: Descriptor) = {
-      traceN("new entry: " + s + " -> " + d)
+      trace("new entry: " + s + " -> " + d)
       symbolTables(Level.value) = symbolTables(Level.value) + (s, d)
       trace("currentAddress: " + currentAddress + " + " + d.size + " = " + (currentAddress + d.size) + "")
       incCurrAddr(d.size)
@@ -17,22 +23,21 @@ object Memory {
     def apply(s: String) = symbolTables(Level.value)(s)
     def apply() = symbolTables(Level.value)
     override def toString = {
-      var s = "\nSymbolTable:\n";
+      var s = "\nSymbolTables:\n";
       for (item <- symbolTables; i <- 0 until symbolTables.length) {
         s += "  Level " + i + "\n"
-        s += item
+        s += item.print(0)
       }
       s
     }
+    var record = false
     private def incCurrAddr(i: Int) = {
       if (i > 0)
         currAddr += i
     }
     private var currAddr = 0
     def currentAddress = currAddr
-
-    def traceN(x: Any) = if (OberonDebug.symbolTable) print("Memory.SymbolTable: " + x)
-    def trace(x: Any) = if (OberonDebug.symbolTable) println("Memory.SymbolTable: " + x)
+    def trace(x: Any) = if (OberonDebug.symbolTable) println("Memory.SymbolTables: " + x)
   }
   def mainProgramLength = cip.TreeGenerator.lengthDataSegmentMainProgram
   def setMainProgramLength(i: Int) = cip.TreeGenerator.lengthDataSegmentMainProgram = i
@@ -49,7 +54,7 @@ object Memory {
 
     case object IntConst
     case class IntConst(intval: Int) extends Descriptor {
-      def print(n: Int) = ->("IntConst(" + intval + ")", n)
+      def print(n: Int) = ->("IntConst(" + intval + ")"+ sizeString, n)
     }
 
     trait VariableDescriptor extends Descriptor {
@@ -62,20 +67,20 @@ object Memory {
 
     case object Variable
     case class Variable(address: Int, _type: Type) extends Descriptor with VariableDescriptor {
-      def print(n: Int) = ->("Variable(address=" + address + ")", n) + _type.print(n + 1)
+      def print(n: Int) = ->("Variable(address=" + address + ")"+ sizeString, n) + _type.print(n + 2)
       val isParameter = false
     }
 
     case object ParameterVariable
     case class ParameterVariable(address: Int, _type: Type) extends Descriptor with VariableDescriptor {
-      def print(n: Int) = ->("ParameterVariable(address=" + address + ")", n) + _type.print(n + 1)
+      def print(n: Int) = ->("ParameterVariable(address=" + address + ")"+ sizeString, n) + _type.print(n + 1)
       val isParameter = true
     }
 
     case object Procedcure
     case class Procedcure(name: String, startaddress: Int, lengthparblock: Int,
       framesize: Int, params: ParameterVariable) extends Descriptor {
-      def print(n: Int) = ->("Procedcure(name=" + name + "startaddress=" + startaddress + "lengthparblock=" + lengthparblock + "framesize=" + framesize + ")", n) + params.print(n + 1)
+      def print(n: Int) = ->("Procedcure(name=" + name + "startaddress=" + startaddress + "lengthparblock=" + lengthparblock + "framesize=" + framesize + ")"+ sizeString, n) + params.print(n + 1)
       override def toInt = startaddress
     }
 
@@ -86,17 +91,25 @@ object Memory {
       override def toInt = numberOfElems
       override val size: Int = numberOfElems * basetype.size
     }
+
     trait SymbolTableTrait extends Descriptor {
       override val size: Int
       def +(s: String, d: Descriptor): SymbolTableTrait = NilDescriptor
       def +(d: Descriptor): SymbolTableTrait = NilDescriptor
       val symbolTable: Map[String, Descriptor] = new HashMap
-      def apply(s:String): Option[Descriptor] = None
+      def apply(s: String): Option[Descriptor] = None
       override def toInt: Int
     }
+
     case object SymbolTable
-    case class SymbolTable(override val symbolTable: Map[String, Descriptor] = new HashMap) extends SymbolTableTrait{
-      def print(n: Int) = ->("SymbolTable", n) + ->(symbolTable.toString, n + 1)
+    case class SymbolTable(override val symbolTable: Map[String, Descriptor] = new HashMap) extends SymbolTableTrait {
+      def print(n: Int) = {
+        var s = ""
+        for ((x, y) <- symbolTable) {
+          s += ->(x + "->" + y.print(n), n + 1)
+        }
+        s
+      }
       override val size: Int = {
         var i = 0;
         for ((name, desc) <- symbolTable) {
@@ -108,39 +121,33 @@ object Memory {
       override def +(s: String, d: Descriptor) = {
         SymbolTable(symbolTable + Tuple(s, d))
       }
-      
+
       override def +(d: Descriptor): SymbolTableTrait = {
-        
-        
+
         d match {
-          case t:SymbolTableTrait => {
+          case t: SymbolTableTrait => {
             SymbolTable(symbolTable ++ t.symbolTable)
           }
-          case x =>{
-            error("No SymbolTable found: " +  x)
+          case x => {
+            error("No SymbolTable found: " + x)
             NilDescriptor
-          } 
+          }
         }
       }
-      
-      override def apply(s:String): Option[Descriptor] = {
+
+      override def apply(s: String): Option[Descriptor] = {
         symbolTable get s
       }
 
       override def toInt = symbolTable.size
-      override def toString = {
-        var s = ""
-        symbolTable.foreach {
-          case (x, y) => s += "    " + x + "->" + y
-        }
-        s
-      }
     }
 
     case object RecordType
-    case class RecordType(symbolTable: SymbolTableTrait) extends Type {
-      def print(n: Int) = ->("RecordType", n) + ->(symbolTable.toString, n + 1)
-      override def toInt = symbolTable.size
+    case class RecordType(symbolTable: SymbolTableTrait, startAddress:Int = 0) extends Type {
+      def print(n: Int) = ->("RecordType(startAddress="+startAddress+")"+ sizeString, n) + symbolTable.print(n + 1)
+      override def toInt = symbolTable.symbolTable.size
+      override val size = symbolTable.size
+      
     }
 
     trait SimpleType extends Type {
@@ -148,16 +155,16 @@ object Memory {
       override val size = 1
     }
     case object IntegerType extends SimpleType {
-      val name = "IntegerType"
-      def print(n: Int) = ->(name, n)
+      val name = "IntegerType" 
+      def print(n: Int) = ->(name + sizeString, n)
     }
     case object StringType extends SimpleType {
       val name = "StringType"
-      def print(n: Int) = ->(name, n)
+      def print(n: Int) = ->(name + sizeString, n)
     }
     case object BooleanType extends SimpleType {
       val name = "BooleanType"
-      def print(n: Int) = ->(name, n)
+      def print(n: Int) = ->(name + sizeString, n)
     }
 
     object NilDescriptor extends Descriptor with SymbolTableTrait {
@@ -167,6 +174,7 @@ object Memory {
 
     trait Descriptor {
       val size = 0;
+      def sizeString = "(size=" + size + ")"
       val level = Level.value
 
       def print(n: Int): String
@@ -174,8 +182,15 @@ object Memory {
       override def toString = print(0)
     }
 
-    def ->(value: String, n: Int) = "	" * n + value + "\n"
-    def trace(s: Any) = println("Memory:Declarations " + s)
+    def ->(value: String, n: Int) = "	" * n + addNewLine(value)
+    def trace(s: Any) = println("Memory:Declarations " + addNewLine(s))
+    def addNewLine(a: Any) = {
+      val s = a.toString()
+      if (s.last == '\n')
+        s
+      else
+        s + "\n"
+    }
 
   }
   def trace(s: Any) = if (OberonDebug.memory) println("Memory: " + s)

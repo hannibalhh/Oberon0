@@ -50,13 +50,18 @@ object Tree {
                   case _ => OberonInstructions.ContInstruction(v._type.size)
                 }
               }
-              case x => error("Content: VariableDeclaration",x)
+              case x => error("Content: VariableDeclaration", x)
             }
           }
         }
         t
       }
       address match {
+        case r: RecordReference => {
+          val t = r.compile()
+          OberonInstructions.ContInstruction(t.size)
+          t
+        }
         case arrref: ArrayReference => {
           compileIdent(arrref.ident)
           //          arrref.expr.compile()
@@ -79,7 +84,23 @@ object Tree {
   case class IdentNode(override val identIdent: Symbol, override val optionalIdent: Expression = Nil) extends Tree[Ident] with Ident {
     override def compile(symbolTable: Map[String, Descriptor] = new HashMap): Memory.Declarations.Descriptor = {
       trace("IdentNode(" + identIdent + ")")
-      val eOp = Memory.SymbolTables(identIdent.value.get.toString)
+      val eOp =
+        if (!Memory.SymbolTables.record) // global
+          Memory.SymbolTables(identIdent.value.get.toString)
+        else { // record
+          if (symbolTable.size != 1) {
+            error("one elem in map is supported, a record name", symbolTable)
+            Memory.Declarations.NilDescriptor
+          }
+          val (name, desc) = symbolTable.first
+          Memory.SymbolTables(name).get match {
+            case r: Memory.Declarations.RecordType => r.symbolTable(identIdent.value.get.toString)
+            case x => {
+              error("IdentNode: RecordType", symbolTable)
+              None
+            }
+          }
+        }
       if (eOp.isEmpty)
         Memory.Declarations.NilDescriptor
       else {
@@ -87,9 +108,10 @@ object Tree {
         e match {
           case x: Memory.Declarations.Type => x
           case x: Memory.Declarations.VariableDescriptor => {
+            trace("do variable: " + Memory.SymbolTables.record)
             val addr = x.address
             val t = x._type
-            OberonInstructions.IntegerVal(addr.toInt)
+            OberonInstructions.IntegerVal(addr)
             if (e.level > 0) {
               if (e.level == Memory.Level.value) {
                 OberonInstructions.GetFP
@@ -266,12 +288,42 @@ object Tree {
       desc match {
         case t: Memory.Declarations.Type => Memory.Declarations.ArrayType(size * num, t)
         case x => {
-          error("ArrayType: Type Descriptor",x)
+          error("ArrayType: Type Descriptor", x)
           Memory.Declarations.NilDescriptor
         }
       }
     }
     override def print(n: Int) = ->("ArrayType", n) + elemArrayType.print(n + 1) + _typeArrayType.print(n + 1)
+  }
+
+  case object ArrayReference
+  case class ArrayReference(ident: Ident, expr: Expression) extends Tree[ArrayReference] with Expression {
+
+    override def compile(symbolTable: Map[String, Descriptor] = new HashMap) = {
+      trace("ArrayReference")
+      val basetype = ident.compile()
+      expr.compile()
+      OberonInstructions.IntegerVal {
+        basetype match {
+          case v: Memory.Declarations.Variable => {
+            v._type match {
+              case a: Memory.Declarations.ArrayType => {
+                a.basetype.size
+              }
+              case _ => {
+                basetype.size
+              }
+            }
+          }
+        }
+      }
+      OberonInstructions.MultiplicationInstruction
+      OberonInstructions.AdditionInstruction
+      Memory.Declarations.NilDescriptor
+      basetype
+    }
+
+    override def print(n: Int) = ->("ArrayReference", n) + ident.print(n + 1) + expr.print(n + 1)
   }
 
   // FieldListList
@@ -304,9 +356,19 @@ object Tree {
       def compileIdent(expr: Expression): Memory.Declarations.SymbolTableTrait = {
         if (expr.isDefined) {
           expr match {
-            case id: Tree.Ident => Memory.Declarations.SymbolTable() + (id.identIdent.value.get.toString, t) + compileIdent(id.optionalIdent)
+            case id: Tree.Ident => {
+              t match {
+                case tt: Memory.Declarations.Type => {
+                  Memory.Declarations.SymbolTable() + (id.identIdent.value.get.toString, t) + compileIdent(id.optionalIdent)
+                }
+                case x => {
+                  error("FieldNode: Type", x)
+                  Memory.Declarations.NilDescriptor
+                }
+              }
+            }
             case x => {
-              error("FieldNode: Ident",x)
+              error("FieldNode: Ident", x)
               Memory.Declarations.NilDescriptor
             }
           }
@@ -316,51 +378,8 @@ object Tree {
       Memory.Declarations.SymbolTable(symbolTable) + compileIdent(idlField)
     }
 
+    override def print(n: Int) = ->("FieldNode", n) + idlField.print(n + 1) + _typeField.print(n + 1)
   }
-
-  //		int i;
-  //		int addr = 0;
-  //		int laddr = fd.getAddr();
-  //		int lsize = fd.getSize();
-  //		VarDescr entry = null;
-  //		AbstractDescr d = null;
-  //
-  //		if (fieldNames != null) {
-  //			if (fieldType instanceof ArrayNode)
-  //				d = ((ArrayNode) fieldType).compile(symbolTable);
-  //			else if (fieldType instanceof RecordNode)
-  //				d = ((RecordNode) fieldType).compile(symbolTable);
-  //			else
-  //				d = CodeGen.search(((IdfNode) (fieldType)).getIdName(),((IdfNode) (fieldType)).getLine());
-  //
-  //			for (i = 0; i < fieldNames.size(); i++) {
-  //				addr = laddr;
-  //				entry = new VarDescr(addr, d);
-  //				laddr = laddr + d.getSize();
-  //				lsize = lsize + d.getSize();
-  //
-  //				fd.getRecsymbolTable().put(
-  //						((IdfNode) (fieldNames.get(i))).getIdName(), entry);
-  //			}
-  //		}
-  //		fd.setAddr(laddr);
-  //		fd.setSize(lsize);
-  //		unindent();
-  //		return d;
-
-  // FieldIdNode
-  //      val valdesc = Memory.SymbolTables(idlField.identIdent.toString())
-  //      OberonInstructions.IntegerVal {
-  //        valdesc match {
-  //          case v: Memory.Declarations.Variable => {
-  //            v.address
-  //          }
-  //          case x => {
-  //            error("Variable is espected")
-  //            Int.MinValue
-  //          }
-  //        }
-  //      }
 
   //RecordType = ÕRECORDÕ FieldList {Õ;Õ FieldList} ÕENDÕ.
   case object RecordType
@@ -368,15 +387,39 @@ object Tree {
     override def compile(symbolTable: Map[String, Descriptor] = new HashMap) = {
       trace("RecordType")
       fieldsRecordType.compile() match {
-        case t:Memory.Declarations.SymbolTableTrait => Memory.Declarations.RecordType(t)
+        case t: Memory.Declarations.SymbolTableTrait => Memory.Declarations.RecordType(t)
         case x => {
           error("SymbolTable", x)
           Memory.Declarations.NilDescriptor
         }
       }
-      
     }
+
     override def print(n: Int) = ->("RecordType", n) + fieldsRecordType.print(n + 1)
+  }
+
+  case object RecordReference
+  case class RecordReference(record: Ident, field: Expression) extends Tree[RecordReference] with Expression {
+    override def compile(symbolTable: Map[String, Descriptor] = new HashMap) = {
+      trace("RecordRefNode")
+      val a = record.compile(symbolTable) match {
+        case recordTable: Memory.Declarations.RecordType => {
+          OberonInstructions.IntegerVal(recordTable.startAddress)
+          Memory.SymbolTables.record = true
+          val f = field.compile(new HashMap() + Tuple(record.identIdent.value.get.toString, recordTable))
+          Memory.SymbolTables.record = false
+          f
+        }
+        case x => {
+          error("RecordReference: Record Declaration", x)
+          Memory.Declarations.NilDescriptor
+        }
+      }
+      OberonInstructions.AdditionInstruction
+      a
+    }
+
+    override def print(n: Int) = ->("RecordReference", n) + record.print(n + 1) + field.print(n + 1)
   }
 
   //Type = ident | ArrayType | RecordType.
@@ -475,31 +518,33 @@ object Tree {
 
     override def compile(symbolTable: Map[String, Descriptor] = new HashMap) = {
       trace("VarDeclarations")
-      val d = _type.compile(symbolTable)
+      val anyType = _type.compile(symbolTable)
       def compileIdent(ident: Expression): Memory.Declarations.Descriptor = {
         if (ident.isDefined) {
-          d match {
-            case t: Memory.Declarations.Type => {
-              val entry = Memory.Declarations.Variable(Memory.SymbolTables.currentAddress, t)
-              trace("d.size = " + d.size)
-              ident match {
-                case i: Ident => {
+          ident match {
+            case i: Ident => {
+              anyType match {
+                case t: Memory.Declarations.SimpleType => {
+                  val entry = Memory.Declarations.Variable(Memory.SymbolTables.currentAddress, t)
                   Memory.SymbolTables + (i.identIdent.value.get.toString, entry)
-                  compileIdent(i.optionalIdent)
+                }
+                case t: Memory.Declarations.ArrayType => {
+                  val entry = Memory.Declarations.Variable(Memory.SymbolTables.currentAddress, t)
+                  Memory.SymbolTables + (i.identIdent.value.get.toString, entry)
                 }
                 case t: Memory.Declarations.RecordType => {
-                	trace(t)
-                	//  compileIdent(i.optionalIdent)
-                	Memory.Declarations.NilDescriptor
+                  Memory.SymbolTables + (i.identIdent.value.get.toString, concreteRecordType(t))
+                  Memory.Declarations.NilDescriptor
                 }
                 case x => {
-                  error("VarDeclarations: Ident or Record",x)
+                  error("VarDeclarations: SimpleType or Record", x)
                   Memory.Declarations.NilDescriptor
                 }
               }
+              compileIdent(i.optionalIdent)
             }
             case x => {
-              error("VarDeclarations: Type Declaration",x)
+              error("VarDeclarations: Ident", x)
               Memory.Declarations.NilDescriptor
             }
           }
@@ -508,6 +553,27 @@ object Tree {
       }
       compileIdent(ident)
       next.compile()
+    }
+
+    def concreteRecordType(r: Memory.Declarations.RecordType): Memory.Declarations.RecordType = {
+      def c = Memory.SymbolTables.currentAddress
+      val startAddr = c
+      var i = 0
+      var newTable = Memory.Declarations.SymbolTable()
+      for ((name, desc) <- r.symbolTable.symbolTable) {
+        newTable = desc match {
+          case r: Memory.Declarations.RecordType => newTable + (name, concreteRecordType(r))
+          case t: Memory.Declarations.Type => {
+            newTable + (name, Memory.Declarations.Variable(c + i, t))
+          }
+          case x => {
+            error("concreteRecordType:Type", x)
+            Memory.Declarations.SymbolTable()
+          }
+        }
+        i += desc.size
+      }
+      Memory.Declarations.RecordType(newTable, startAddr)
     }
 
     override def print(n: Int) = ->("VarDeclarations", n) + ident.print(n + 1) + _type.print(n + 1) + next.print(n + 1)
@@ -565,55 +631,6 @@ object Tree {
     }
 
     override def print(n: Int) = ->("Module", n) + idStart.print(n + 1) + declarations.print(n + 1) + statement.print(n + 1) + idEnd.print(n + 1)
-  }
-
-  case object ArrayReference
-  case class ArrayReference(ident: Ident, expr: Expression) extends Tree[ArrayReference] with Expression {
-
-    override def compile(symbolTable: Map[String, Descriptor] = new HashMap) = {
-      trace("ArrayReference")
-      val basetype = ident.compile()
-      expr.compile()
-      OberonInstructions.IntegerVal {
-        basetype match {
-          case v: Memory.Declarations.Variable => {
-            v._type match {
-              case a: Memory.Declarations.ArrayType => {
-                a.basetype.size
-              }
-              case _ => {
-                basetype.size
-              }
-            }
-          }
-        }
-      }
-      OberonInstructions.MultiplicationInstruction
-      OberonInstructions.AdditionInstruction
-      Memory.Declarations.NilDescriptor
-      basetype
-    }
-
-    override def print(n: Int) = ->("ArrayReference", n) + ident.print(n + 1) + expr.print(n + 1)
-  }
-
-  case object RecordReference
-  case class RecordReference(record: Ident, field: Expression) extends Tree[RecordReference] with Expression {
-
-    override def compile(symbolTable: Map[String, Descriptor] = new HashMap) = {
-      trace("RecordRefNode")
-      val a = record.compile(symbolTable) match {
-        case rt: Memory.Declarations.RecordType => field.compile(rt.symbolTable.symbolTable)
-        case x => {
-          error("RecordReference: Record Declaration", x)
-          Memory.Declarations.NilDescriptor
-        }
-      }
-      OberonInstructions.AdditionInstruction
-      a
-    }
-
-    override def print(n: Int) = ->("RecordReference", n) + record.print(n + 1) + field.print(n + 1)
   }
 
   //Assignment        = ident Selector Õ:=Õ Expression
@@ -698,7 +715,7 @@ object Tree {
     override def print(n: Int) = ->("RepeatStatement", n) + condition.print(n + 1) + statement.print(n + 1)
   }
 
-  sealed trait Tree[+T] {
+  trait Tree[+T] {
     def isDefined = true
     def print(n: Int): String
     override def toString = "AbstractSyntaxTree:\n" + print(0)
@@ -707,7 +724,7 @@ object Tree {
 
   def ->(value: String, n: Int) = "	" * n + value + "\n"
   def trace(s: Any) = if (OberonDebug.compile) println("compile: " + s)
-  def error(s: Any, found: Any ) = {
+  def error(s: Any, found: Any) = {
     Thread.sleep(40)
     Console.err.println("compile error: " + s + " is missing, found: " + found)
     System.exit(-1)
