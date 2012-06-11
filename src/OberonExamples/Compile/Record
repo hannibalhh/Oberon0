@@ -3,16 +3,9 @@ var
 a,b : 
 	record
 		x,x2,x3 : integer;
-		y,y1,y2 : integer
-	end
-;
+		y,y1,y2 : record
+			g,i: integer
+		end
+	end;
 begin
-a.x := 1;
-a.y := 2;
-b.x := 3;
-b.y := 4;
-print a.x;
-print a.y;
-print b.x;
-print b.y
 end m.

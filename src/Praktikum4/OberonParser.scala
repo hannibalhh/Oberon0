@@ -7,7 +7,7 @@ object OberonParser extends App {
   import Praktikum4.OberonScanner._
   import Praktikum4.Tree._
 
-  val scanner = oberonScanner("src/OberonExamples/Compile/Record")
+  val scanner = oberonScanner("src/OberonExamples/Compile/ConstDeclarations")
   var current = next
 
   OberonCodeGenerator.run(parser)
@@ -89,7 +89,7 @@ object OberonParser extends App {
       val id = ident
       if (id.isDefined) {
         inc
-        RecordReference(before, Tree.IdentNode(id.get))
+        RecordReference(before, Selector(Tree.IdentNode(id.get)))
       } else {
         error("Selector with ident after dot")
         Nil
@@ -99,7 +99,11 @@ object OberonParser extends App {
       val expr = Expression
       if (edgeBracketOff) {
         inc
-        ArrayReference(before, expr)
+        if (edgeBracketOn) {
+          ArrayReference(before, ArrayReference(expr, Selector(Nil)))
+        } else {
+          ArrayReference(before, expr)
+        }
       } else {
         error("Selector with ] after Expression")
         Nil

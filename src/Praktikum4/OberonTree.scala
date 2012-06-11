@@ -40,8 +40,10 @@ object Tree {
       def compileIdent(i: Ident): Memory.Declarations.Descriptor = {
         val t = address.compile(symbolTable)
         val e = Memory.SymbolTables(i.identIdent.value.get.toString)
-        e match {
-          case e: ConstIdent =>
+        trace(e)
+        e.get match {
+          case e: ConstIdent => 
+          case c: Memory.Declarations.IntConst => OberonInstructions.IntegerVal(c.intval)
           case _ => {
             t match {
               case v: Memory.Declarations.Variable => {
@@ -63,7 +65,13 @@ object Tree {
           t
         }
         case arrref: ArrayReference => {
-          compileIdent(arrref.ident)
+          arrref.ident match {
+            case i: Ident => compileIdent(i)
+            case x => {
+              error("Content: Ident", x)
+              Memory.Declarations.NilDescriptor
+            }
+          }
           //          arrref.expr.compile()
         }
         case i: Ident => {
@@ -93,11 +101,17 @@ object Tree {
             Memory.Declarations.NilDescriptor
           }
           val (name, desc) = symbolTable.first
-          Memory.SymbolTables(name).get match {
-            case r: Memory.Declarations.RecordType => r.symbolTable(identIdent.value.get.toString)
-            case x => {
-              error("IdentNode: RecordType", symbolTable)
-              None
+          val memValue = Memory.SymbolTables(name)
+          if (memValue.isEmpty) {
+            error(name + " in symboltable ", memValue)
+            None
+          } else {
+            Memory.SymbolTables(name).get match {
+              case r: Memory.Declarations.RecordType => r.symbolTable(identIdent.value.get.toString)
+              case x => {
+                error("IdentNode: RecordType", symbolTable)
+                None
+              }
             }
           }
         }
@@ -297,7 +311,7 @@ object Tree {
   }
 
   case object ArrayReference
-  case class ArrayReference(ident: Ident, expr: Expression) extends Tree[ArrayReference] with Expression {
+  case class ArrayReference(ident: Expression, expr: Expression) extends Tree[ArrayReference] with Expression {
 
     override def compile(symbolTable: Map[String, Descriptor] = new HashMap) = {
       trace("ArrayReference")
@@ -314,6 +328,10 @@ object Tree {
                 basetype.size
               }
             }
+          }
+          case x => {
+            error("ArrayReference: VariableDescriptor", x)
+            Int.MinValue
           }
         }
       }
@@ -496,8 +514,16 @@ object Tree {
     override def compile(symbolTable: Map[String, Descriptor] = new HashMap) = {
       trace("ConstDeclarations")
       val d = expression.compile(symbolTable);
-      next.compile(symbolTable + Tuple(ident.identIdent.value.get.toString, d));
-      Memory.Declarations.NilDescriptor
+      expression match {
+        case i: Integer => {
+          Memory.SymbolTables + (ident.identIdent.value.get.toString, Memory.Declarations.IntConst(i.int.value.get.toString.toInt))
+          next.compile(symbolTable + Tuple(ident.identIdent.value.get.toString, Memory.Declarations.IntConst(i.int.value.get.toString.toInt)));
+        }
+        case x => {
+          error("ConstDeclarations with Integervalue",x)
+        }
+      }
+      d
     }
     override def print(n: Int) = ->("ConstDeclarations", n) + ident.print(n + 1) + expression.print(n + 1) + next.print(n + 1)
   }
@@ -507,8 +533,8 @@ object Tree {
     override def compile(symbolTable: Map[String, Descriptor] = new HashMap) = {
       trace("TypeDeclarations")
       val d = _type.compile(symbolTable);
+      Memory.SymbolTables + (ident.identIdent.value.get.toString, d)
       next.compile(symbolTable + Tuple(ident.identIdent.value.get.toString, d));
-      Memory.Declarations.NilDescriptor
     }
     override def print(n: Int) = ->("TypeDeclarations", n) + ident.print(n + 1) + _type.print(n + 1) + next.print(n + 1)
   }
@@ -533,7 +559,7 @@ object Tree {
                   Memory.SymbolTables + (i.identIdent.value.get.toString, entry)
                 }
                 case t: Memory.Declarations.RecordType => {
-                  Memory.SymbolTables + (i.identIdent.value.get.toString, concreteRecordType(t))
+                  Memory.SymbolTables + (i.identIdent.value.get.toString, concreteRecordType(t, Memory.SymbolTables.currentAddress))
                   Memory.Declarations.NilDescriptor
                 }
                 case x => {
@@ -555,14 +581,13 @@ object Tree {
       next.compile()
     }
 
-    def concreteRecordType(r: Memory.Declarations.RecordType): Memory.Declarations.RecordType = {
-      def c = Memory.SymbolTables.currentAddress
-      val startAddr = c
+    def concreteRecordType(r: Memory.Declarations.RecordType, currentAddress: Int): Memory.Declarations.RecordType = {
+      val startAddr = currentAddress
       var i = 0
       var newTable = Memory.Declarations.SymbolTable()
       for ((name, desc) <- r.symbolTable.symbolTable) {
         newTable = desc match {
-          case r: Memory.Declarations.RecordType => newTable + (name, concreteRecordType(r))
+          case r: Memory.Declarations.RecordType => newTable + (name, concreteRecordType(r, i))
           case t: Memory.Declarations.Type => {
             newTable + (name, Memory.Declarations.Variable(i, t))
           }

@@ -1,18 +1,25 @@
 module m;
 var 
+x,y:integer;
 OUTa,OUTb : 
 	record
 		INx : integer;
 		INy : integer
 	end
 ;
+a,b:integer;
 begin
-OUTa.INx := 5;
+x := 1;
+OUTa.INx := 5 + x;
 OUTa.INy := 15;
 OUTb.INx := 35;
 OUTb.INy := 55;
 print OUTa.INx;
 print OUTa.INy;
 print OUTb.INx;
-print OUTb.INy
+print OUTb.INy;
+y := 10 + OUTa.INx;
+a := OUTb.INy;
+print y;
+print a
 end m.

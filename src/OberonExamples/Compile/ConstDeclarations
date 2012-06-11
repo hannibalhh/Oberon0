@@ -1,0 +1,10 @@
+module m;
+const
+C = 5;
+var
+x : integer;
+begin
+print C;
+x := C;
+print x
+end m.

@@ -1,0 +1,8 @@
+module m;
+var
+i,j : array [6] of array [8] of integer;
+k : integer;
+begin
+i[2][3] := 0 + 10;
+print i[2][3]
+end m.

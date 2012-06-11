@@ -1,0 +1,9 @@
+module m;
+type
+blub = array [10] of integer;
+var
+x : blub;
+begin
+x[2] := 5;
+print x[2]
+end m.
