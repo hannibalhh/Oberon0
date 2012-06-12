@@ -9,8 +9,9 @@ while j <= 10 do
 		print x
 	elsif x = 3 then
 		if j = 5*2 then print "succ" end;
-		print "juhu"
+		print j
 	else
+		if j = 2   then print "malte" end;
 		print "so nich"
 	end;
 	j := j + 1	

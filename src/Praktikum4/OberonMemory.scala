@@ -170,13 +170,16 @@ object Memory {
     object NilDescriptor extends Descriptor with SymbolTableTrait {
       def print(n: Int) = "NilDescriptor"
       override val size = -1
+      override val isDefined = false
+      override val isEmpTy = true
     }
 
     trait Descriptor {
       val size = 0;
       def sizeString = "(size=" + size + ")"
       val level = Level.value
-
+      val isDefined = true
+      val isEmpTy = false
       def print(n: Int): String
       def toInt: Int = -1
       override def toString = print(0)

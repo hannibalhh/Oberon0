@@ -1,0 +1,27 @@
+module v06;
+
+var
+
+
+c : record
+	 a, b : integer;
+	 c : array[10] of integer;
+	 d : record
+	 	  x, y, z : integer;
+	 	  u, v : record
+	 	  		  w : array[5] of integer;
+	 	  		  t : integer
+	 	  		 end
+	 	 end
+	 end;	 	 
+
+begin
+ c.c[2]  := 1;
+ c.b     := c.c[2];
+ c.d.y   := c.b;
+ c.d.u.t := c.d.y;
+ c.d.v.w[2] := c.d.u.t;
+ 
+ v[1][1] := c.d.v.w[2];
+ print v[1][1]
+end v06.
