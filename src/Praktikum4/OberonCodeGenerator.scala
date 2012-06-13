@@ -16,7 +16,6 @@ object OberonCodeGenerator {
     codeGen.close
     abstractSyntaxTree
   }
-
 }
 
 // StandaloneCG.main(Array("assemblerCode", "0"))

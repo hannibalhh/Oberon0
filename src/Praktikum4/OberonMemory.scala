@@ -8,7 +8,7 @@ object Memory {
   // level -> symbolTabelle
   object SymbolTables {
     private val symbolTables = Array(Declarations.SymbolTable(new HashMap[String, Descriptor]))
-   
+    def newTable = symbolTables(symbolTables.size-1) = Declarations.SymbolTable(new HashMap[String, Descriptor])
     def +(s: String, d: SimpleType) = {
       trace("new entry: " + s + " -> " + d)
       symbolTables(Level.value) = symbolTables(Level.value) + (s, d)
@@ -79,7 +79,7 @@ object Memory {
 
     case object Procedcure
     case class Procedcure(name: String, startaddress: Int, lengthparblock: Int,
-      framesize: Int, params: ParameterVariable) extends Descriptor {
+      framesize: Int, params: SymbolTableTrait) extends Descriptor {
       def print(n: Int) = ->("Procedcure(name=" + name + "startaddress=" + startaddress + "lengthparblock=" + lengthparblock + "framesize=" + framesize + ")"+ sizeString, n) + params.print(n + 1)
       override def toInt = startaddress
     }

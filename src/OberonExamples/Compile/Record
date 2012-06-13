@@ -5,14 +5,11 @@ a,b :
 		x,x2,x3 : integer;
 		y,y1,y2 : record
 			g,i: record 
-				w: integer;
-				a: array [10] of integer
+				w: integer
 			end
 		end
 	end;
 begin
 a.y2.g.w := 15;
-a.y1.i.a[4] := 25;
-print a.y2.g.w;
-print a.y1.i.a[4]
+print a.y2.g.w
 end m.

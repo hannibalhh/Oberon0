@@ -99,7 +99,10 @@ object OberonParser extends App {
         if (edgeBracketOn) {
           ArrayReference(before, ArrayReference(expr, Selector(Nil)))
         } else {
-          ArrayReference(before, expr)
+          if (before.isDefined)
+            ArrayReference(before, ArrayReference(expr, Nil))
+          else
+            ArrayReference(expr, Nil)
         }
       } else {
         error("Selector with ] after Expression")

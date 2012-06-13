@@ -1,8 +1,11 @@
 module m;
 var
-i,j : array [6] of array [8] of integer;
-k : integer;
+x: integer;
+i : array [6] of array [8] of integer;
+j : array [19] of integer;
 begin
-i[2][3] := 0 + 10;
-print i[2][3]
+i[2][3] := 15;
+j[10] := 125;
+print i[2][3];
+print j[10]
 end m.
