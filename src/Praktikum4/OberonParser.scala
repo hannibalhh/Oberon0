@@ -7,7 +7,7 @@ object OberonParser extends App {
   import Praktikum4.OberonScanner._
   import Praktikum4.Tree._
 
-  val scanner = oberonScanner("src/OberonExamples/Compile/Record")
+  val scanner = oberonScanner("src/OberonExamples/Compile/arithmeticsArrays")
   var current = next
 
   OberonCodeGenerator.run(parser)

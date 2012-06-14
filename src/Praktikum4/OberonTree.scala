@@ -484,8 +484,8 @@ object Tree {
       val framesize = Memory.SymbolTables.currentAddress
       val params = Memory.Declarations.SymbolTable(new HashMap)
       val procedure = Memory.Declarations.Procedcure(name, startaddress, lengthparblock,
-      framesize, params)
-      Memory.SymbolTables + (name,procedure)
+        framesize, params)
+      Memory.SymbolTables + (name, procedure)
       procedure
     }
     override def print(n: Int) = ->("ProcedureHeading", n) + identProcedureHeading.print(n + 1) + formalParameters.print(n + 1)
@@ -496,56 +496,66 @@ object Tree {
   case class ProcedureBody(declarationsProcedureBody: Declarations, statementProcedureBody: Statement) extends Tree[ProcedureBody] {
     override def compile(symbolTable: Map[String, Descriptor] = new HashMap) = {
       trace("ProcedureBody")
-      // aus Symboltabelle holen
-//      OberonInstructions.LabelInstruction(startaddress)
+      val (name, table) = symbolTable.first
+      table match {
+        case procedure: Memory.Declarations.Procedcure => {
 
-      // Init
-      OberonInstructions.PushRegisterInstruction("RK")
-      OberonInstructions.PushRegisterInstruction("FP")
-      OberonInstructions.IntegerVal(Memory.Level.value)
-      OberonInstructions.PushRegisterInstruction("SL")
+          // aus Symboltabelle holen
+          OberonInstructions.LabelInstruction(procedure.startaddress)
 
-      // FP := SP;
-      OberonInstructions.GetSP
-      OberonInstructions.SetFP
+          // Init
+          OberonInstructions.PushRegisterInstruction("RK")
+          OberonInstructions.PushRegisterInstruction("FP")
+          OberonInstructions.IntegerVal(Memory.Level.value)
+          OberonInstructions.PushRegisterInstruction("SL")
 
-      // SL(level) := FP
-      OberonInstructions.GetFP
-      OberonInstructions.IntegerVal(Memory.Level.value)
-      OberonInstructions.SetSL
+          // FP := SP;
+          OberonInstructions.GetSP
+          OberonInstructions.SetFP
 
-      // SP := SP + framesize;
-      OberonInstructions.GetSP
-//      OberonInstructions.IntegerVal(framesize)
-      OberonInstructions.AdditionInstruction
-      OberonInstructions.SetSP
+          // SL(level) := FP
+          OberonInstructions.GetFP
+          OberonInstructions.IntegerVal(Memory.Level.value)
+          OberonInstructions.SetSL
 
-      // content
-      declarationsProcedureBody.compile(symbolTable)
-      statementProcedureBody.compile(symbolTable)
+          // SP := SP + framesize;
+          OberonInstructions.GetSP
+          OberonInstructions.IntegerVal(procedure.framesize)
+          OberonInstructions.AdditionInstruction
+          OberonInstructions.SetSP
 
-      // finish		
+          // content
+          declarationsProcedureBody.compile(symbolTable)
+          statementProcedureBody.compile(symbolTable)
 
-      // SP := FP
-      OberonInstructions.GetFP
-      OberonInstructions.SetSP
+          // finish		
 
-      OberonInstructions.IntegerVal(Memory.Level.value)
-      OberonInstructions.PopRegisterInstruction("SL")
-      OberonInstructions.PopRegisterInstruction("FP")
-      OberonInstructions.PopRegisterInstruction("RK")
+          // SP := FP
+          OberonInstructions.GetFP
+          OberonInstructions.SetSP
 
-      // SP := SP-lengthparblock;
-      OberonInstructions.GetSP
-//      OberonInstructions.IntegerVal(lengthparblock)
-      OberonInstructions.SubtractionInstruction
-      OberonInstructions.SetSP
+          OberonInstructions.IntegerVal(Memory.Level.value)
+          OberonInstructions.PopRegisterInstruction("SL")
+          OberonInstructions.PopRegisterInstruction("FP")
+          OberonInstructions.PopRegisterInstruction("RK")
 
-      // Speicher freigeben
-//      OberonInstructions.ReduceStack(framesize + 3 + lengthparblock)
+          // SP := SP-lengthparblock;
+          OberonInstructions.GetSP
+          OberonInstructions.IntegerVal(procedure.lengthparblock)
+          OberonInstructions.SubtractionInstruction
+          OberonInstructions.SetSP
 
-      OberonInstructions.ReturnInstruction
-      Memory.Declarations.NilDescriptor
+          // Speicher freigeben
+          OberonInstructions.ReduceStack(procedure.framesize + 3 + procedure.lengthparblock)
+
+          OberonInstructions.ReturnInstruction
+          procedure
+        }
+        case x => {
+          error("Procedure Boddy: Procedure Declaration", x)
+          Memory.Declarations.NilDescriptor
+        }
+      }
     }
     override def print(n: Int) = ->("ProcedureBody", n) + declarationsProcedureBody.print(n + 1) + statementProcedureBody.print(n + 1)
   }
@@ -563,10 +573,13 @@ object Tree {
   case class ProcedureDeclarationNode(override val procedureHeading: Tree[ProcedureHeading], override val procedureBody: Tree[ProcedureBody], override val ident: Ident, override val next: ProcedureDeclaration = Nil) extends ProcedureDeclaration with Declarations {
     override def compile(symbolTable: Map[String, Descriptor] = new HashMap) = {
       trace("ProcedureDeclarationNode")
-      Memory.SymbolTables.newTable
       Memory.Level.inc
-      procedureHeading.compile(symbolTable)
-      procedureBody.compile(symbolTable)
+      Memory.SymbolTables + ("integer", Memory.Declarations.IntegerType)
+      Memory.SymbolTables + ("boolean", Memory.Declarations.BooleanType)
+      Memory.SymbolTables + ("string", Memory.Declarations.StringType)
+      val name = ""
+      val proc = procedureHeading.compile(symbolTable)
+      procedureBody.compile(new HashMap + Tuple(name,proc))
       Memory.Level.dec
       next.compile(symbolTable)
       Memory.Declarations.NilDescriptor
@@ -597,15 +610,6 @@ object Tree {
         case c: Content => {
           trace("content")
           trace(c.identIdent)
-
-          //          val name = j.identIdent.value.get.toString
-          //          val t = Memory.SymbolTables(name)
-          //          if (t.isDefined) {
-          //            Memory.SymbolTables + (name, t.get)
-          //            next.compile(symbolTable + Tuple(name, t.get));
-          //          } else {
-          //            error("Ident in symboltable is", j)
-          //          }
         }
         case x => {
           error("ConstDeclarations with Integervalue", x)

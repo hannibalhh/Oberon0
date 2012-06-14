@@ -1,0 +1,9 @@
+MODULE Sample;
+PROCEDURE d();
+VAR x, y, r, q, w : integer;
+BEGIN
+	print "juhu"
+END d;
+BEGIN 
+	d()
+END Sample.

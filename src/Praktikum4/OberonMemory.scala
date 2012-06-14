@@ -7,13 +7,13 @@ object Memory {
   import Declarations._
   // level -> symbolTabelle
   object SymbolTables {
-    private val symbolTables = Array(Declarations.SymbolTable(new HashMap[String, Descriptor]))
-    def newTable = symbolTables(symbolTables.size-1) = Declarations.SymbolTable(new HashMap[String, Descriptor])
+    private val symbolTables = Array(Declarations.SymbolTable(new HashMap[String, Descriptor]),Declarations.SymbolTable(new HashMap[String, Descriptor]),Declarations.SymbolTable(new HashMap[String, Descriptor]),Declarations.SymbolTable(new HashMap[String, Descriptor]),Declarations.SymbolTable(new HashMap[String, Descriptor]))
+
     def +(s: String, d: SimpleType) = {
       trace("new entry: " + s + " -> " + d)
       symbolTables(Level.value) = symbolTables(Level.value) + (s, d)
     }
-    
+
     def +(s: String, d: Descriptor) = {
       trace("new entry: " + s + " -> " + d)
       symbolTables(Level.value) = symbolTables(Level.value) + (s, d)
@@ -24,9 +24,12 @@ object Memory {
     def apply() = symbolTables(Level.value)
     override def toString = {
       var s = "\nSymbolTables:\n";
-      for (item <- symbolTables; i <- 0 until symbolTables.length) {
-        s += "  Level " + i + "\n"
-        s += item.print(0)
+      for (i <- 0 until symbolTables.length) {
+        val t = symbolTables(i).print(0)
+        if (!t.isEmpty()){
+          s += "  Level " + i + "\n"
+          s += t
+        }
       }
       s
     }
@@ -54,7 +57,7 @@ object Memory {
 
     case object IntConst
     case class IntConst(intval: Int) extends Descriptor {
-      def print(n: Int) = ->("IntConst(" + intval + ")"+ sizeString, n)
+      def print(n: Int) = ->("IntConst(" + intval + ")" + sizeString, n)
     }
 
     trait VariableDescriptor extends Descriptor {
@@ -67,20 +70,20 @@ object Memory {
 
     case object Variable
     case class Variable(address: Int, _type: Type) extends Descriptor with VariableDescriptor {
-      def print(n: Int) = ->("Variable(address=" + address + ")"+ sizeString, n) + _type.print(n + 2)
+      def print(n: Int) = ->("Variable(address=" + address + ")" + sizeString, n) + _type.print(n + 2)
       val isParameter = false
     }
 
     case object ParameterVariable
     case class ParameterVariable(address: Int, _type: Type) extends Descriptor with VariableDescriptor {
-      def print(n: Int) = ->("ParameterVariable(address=" + address + ")"+ sizeString, n) + _type.print(n + 1)
+      def print(n: Int) = ->("ParameterVariable(address=" + address + ")" + sizeString, n) + _type.print(n + 1)
       val isParameter = true
     }
 
     case object Procedcure
     case class Procedcure(name: String, startaddress: Int, lengthparblock: Int,
       framesize: Int, params: SymbolTableTrait) extends Descriptor {
-      def print(n: Int) = ->("Procedcure(name=" + name + "startaddress=" + startaddress + "lengthparblock=" + lengthparblock + "framesize=" + framesize + ")"+ sizeString, n) + params.print(n + 1)
+      def print(n: Int) = ->("Procedcure(name=" + name + ",startaddress=" + startaddress + ",lengthparblock=" + lengthparblock + ",framesize=" + framesize + ")" + sizeString, n) + params.print(n + 1)
       override def toInt = startaddress
     }
 
@@ -143,11 +146,11 @@ object Memory {
     }
 
     case object RecordType
-    case class RecordType(symbolTable: SymbolTableTrait, startAddress:Int = 0) extends Type {
-      def print(n: Int) = ->("RecordType(startAddress="+startAddress+")"+ sizeString, n) + symbolTable.print(n + 1)
+    case class RecordType(symbolTable: SymbolTableTrait, startAddress: Int = 0) extends Type {
+      def print(n: Int) = ->("RecordType(startAddress=" + startAddress + ")" + sizeString, n) + symbolTable.print(n + 1)
       override def toInt = symbolTable.symbolTable.size
       override val size = symbolTable.size
-      
+
     }
 
     trait SimpleType extends Type {
@@ -155,7 +158,7 @@ object Memory {
       override val size = 1
     }
     case object IntegerType extends SimpleType {
-      val name = "IntegerType" 
+      val name = "IntegerType"
       def print(n: Int) = ->(name + sizeString, n)
     }
     case object StringType extends SimpleType {
