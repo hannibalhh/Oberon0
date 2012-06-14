@@ -7,7 +7,7 @@ object Memory {
   import Declarations._
   // level -> symbolTabelle
   object SymbolTables {
-    private val symbolTables = Array(Declarations.SymbolTable(new HashMap[String, Descriptor]),Declarations.SymbolTable(new HashMap[String, Descriptor]),Declarations.SymbolTable(new HashMap[String, Descriptor]),Declarations.SymbolTable(new HashMap[String, Descriptor]),Declarations.SymbolTable(new HashMap[String, Descriptor]))
+    private val symbolTables = Array(Declarations.SymbolTable(new HashMap[String, Descriptor]), Declarations.SymbolTable(new HashMap[String, Descriptor]), Declarations.SymbolTable(new HashMap[String, Descriptor]), Declarations.SymbolTable(new HashMap[String, Descriptor]), Declarations.SymbolTable(new HashMap[String, Descriptor]))
 
     def +(s: String, d: SimpleType) = {
       trace("new entry: " + s + " -> " + d)
@@ -21,12 +21,13 @@ object Memory {
       incCurrAddr(d.size)
     }
     def apply(s: String) = symbolTables(Level.value)(s)
+    
     def apply() = symbolTables(Level.value)
     override def toString = {
       var s = "\nSymbolTables:\n";
       for (i <- 0 until symbolTables.length) {
         val t = symbolTables(i).print(0)
-        if (!t.isEmpty()){
+        if (!t.isEmpty()) {
           s += "  Level " + i + "\n"
           s += t
         }

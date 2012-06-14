@@ -6,8 +6,20 @@ import scala.actors.Actor
 object OberonParser extends App {
   import Praktikum4.OberonScanner._
   import Praktikum4.Tree._
-
-  val scanner = oberonScanner("src/OberonExamples/Compile/arithmeticsArrays")
+  val pre = "src/OberonExamples/"
+  val preC = pre + "Compile/"
+  val preV = pre + "Voeller/"
+  val t0 = "test0-integer-ops.txt" 			// ok
+  val t1 = "test1-statements.txt" 			// ok
+  val t2 = "test2-named-constants.txt" 		// ok
+  val t3 = "test3-array.txt" 				// ok (Zuweisung mit *1)
+  val t4 = "test4-record.txt"				// Zuweisung r1 := r2 geht nicht
+  val t5 = "test5-named-types.txt" 			// array im record läuft nicht
+  val t6 = "test6-simple-procedures.txt" 	// call node und labels laufen nicht
+  val t7 = "test7-procedures-more.txt"
+  val t8 = "test8-local-procedures.txt"
+  val t9 = "test9-recursive procedures.txt"
+  val scanner = oberonScanner(preV + t5)
   var current = next
 
   OberonCodeGenerator.run(parser)
@@ -100,7 +112,7 @@ object OberonParser extends App {
           ArrayReference(before, ArrayReference(expr, Selector(Nil)))
         } else {
           if (before.isDefined)
-            ArrayReference(before, ArrayReference(expr, Nil))
+            ArrayReference(before, ArrayReference(expr, Selector(Nil)))
           else
             ArrayReference(expr, Nil)
         }
@@ -468,8 +480,7 @@ object OberonParser extends App {
       if (f.isDefined) {
         FieldListNode(f, OptionalFieldList)
       } else {
-        error("OptionalFieldList with FieldList after ;")
-        Nil
+        OptionalFieldList
       }
     } else {
       // no error because its optional
@@ -1106,8 +1117,8 @@ object OberonParser extends App {
       if (sts.isDefined) {
         Tree.StatementSequence(sts, OptionalStatementSequence)
       } else {
-        error("StatementSequence with another StatementSequence after ;")
-        Nil
+        // no error because semicolons are optional
+        OptionalStatementSequence
       }
     } else {
       // no error because its optional

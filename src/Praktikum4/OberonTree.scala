@@ -29,7 +29,7 @@ object Tree {
   trait Ident extends Tree[Ident] with Expression with Type with Declarations with ConstIdent {
     val identIdent: Symbol = Symbol("", -1, -1)
     val optionalIdent: Expression = Nil
-    override def num = Memory.SymbolTables(identIdent.value.toString).get.toInt
+    override def num = Memory.SymbolTables(identIdent.value.get.toString).get.toInt
   }
 
   case object Ident
@@ -71,7 +71,7 @@ object Tree {
           }
           case x: Memory.Declarations.IntConst => {
             OberonInstructions.IntegerVal(x.intval)
-            Memory.Declarations.IntegerType
+            x
           }
         }
       }
@@ -90,18 +90,22 @@ object Tree {
         e.get match {
           case e: ConstIdent => t
           case c: Memory.Declarations.IntConst => {
-            OberonInstructions.IntegerVal(c.intval)
             c
           }
           case _ => {
             t match {
               case v: Memory.Declarations.Variable => {
-                v._type match {
-                  case a: Memory.Declarations.ArrayType => OberonInstructions.ContInstruction(1)
-                  case _ => OberonInstructions.ContInstruction(v._type.size)
+                OberonInstructions.ContInstruction(v._type.size)
+              }
+              case a: Memory.Declarations.ArrayType => {
+                address match {
+                  case i: Ident => OberonInstructions.ContInstruction(a.size)
+                  case x => OberonInstructions.ContInstruction(1)
                 }
               }
-              case x => error("Content: VariableDeclaration", x)
+              case x => {
+                OberonInstructions.ContInstruction(t.size)
+              }
             }
             t
           }
@@ -110,7 +114,7 @@ object Tree {
       address match {
         case r: RecordReference => {
           val t = r.compile()
-          OberonInstructions.ContInstruction(t.size)
+          OberonInstructions.ContInstruction(1)
           t
         }
         case arrref: ArrayReference => {
@@ -121,7 +125,6 @@ object Tree {
               Memory.Declarations.NilDescriptor
             }
           }
-          //          arrref.expr.compile()
         }
         case i: Ident => {
           compileIdent(i)
@@ -185,10 +188,10 @@ object Tree {
 
     override def compile(symbolTable: Map[String, Descriptor] = new HashMap) = {
       trace("Expression -> " + value)
-      val dl = left.compile(symbolTable)
-      right.compile(symbolTable)
+      val l = left.compile(symbolTable)
+      val r = right.compile(symbolTable)
       compileOperator
-      dl
+      r
     }
 
     override def print(n: Int) = ->(value, n) + left.print(n + 1) + right.print(n + 1)
@@ -199,7 +202,6 @@ object Tree {
     def +(expr: Expression): Expression = new +(this, expr)
     def -(expr: Expression): Expression = new -(this, expr)
     def :=(expr: Expression): Expression = new :=(this, expr)
-    //    def :#(expr: Expression): Expression = new :#(this, expr)
     def <(expr: Expression): Expression = new <(this, expr)
     def <=(expr: Expression): Expression = new <=(this, expr)
     def >(expr: Expression): Expression = new >(this, expr)
@@ -298,30 +300,32 @@ object Tree {
       trace("ArrayReference")
       val basetype = ident.compile(symbolTable)
       if (next.isDefined) {
-        val s = basetype match {
+        val (t, s) = basetype match {
           case v: Memory.Declarations.Variable => {
             v._type match {
               case a: Memory.Declarations.ArrayType => {
-                a.basetype.size
+                (a, a.basetype.size)
               }
-              case x => {
-                basetype.size
+              case x => {               
+                OberonInstructions.MultiplicationInstruction
+                OberonInstructions.AdditionInstruction
+                (x, basetype.size)
               }
             }
           }
           case i: Memory.Declarations.SimpleType => {
             OberonInstructions.MultiplicationInstruction
             OberonInstructions.AdditionInstruction
-            i.size
+            (i, i.size)
           }
           case x => {
             error("ArrayReference: VariableDescriptor", x)
-            Int.MinValue
+            (Memory.Declarations.NilDescriptor, Int.MinValue)
           }
         }
         OberonInstructions.IntegerVal(s)
         next.compile(symbolTable)
-        basetype
+        t
       } else {
         OberonInstructions.MultiplicationInstruction
         OberonInstructions.AdditionInstruction
@@ -429,9 +433,7 @@ object Tree {
           }
           memTable match {
             case r: Memory.Declarations.RecordType => {
-              Memory.SymbolTables.record = true
               val f = field.compile(r.symbolTable.symbolTable)
-              Memory.SymbolTables.record = false
               f
             }
             case x => {
@@ -579,7 +581,7 @@ object Tree {
       Memory.SymbolTables + ("string", Memory.Declarations.StringType)
       val name = ""
       val proc = procedureHeading.compile(symbolTable)
-      procedureBody.compile(new HashMap + Tuple(name,proc))
+      procedureBody.compile(new HashMap + Tuple(name, proc))
       Memory.Level.dec
       next.compile(symbolTable)
       Memory.Declarations.NilDescriptor
@@ -675,6 +677,7 @@ object Tree {
     def concreteRecordType(r: Memory.Declarations.RecordType, currentAddress: Int): Memory.Declarations.RecordType = {
       val startAddr = currentAddress
       var i = 0
+      trace(r)
       var newTable = Memory.Declarations.SymbolTable()
       for ((name, desc) <- r.symbolTable.symbolTable) {
         newTable = desc match {
@@ -682,6 +685,7 @@ object Tree {
           case t: Memory.Declarations.Type => {
             newTable + (name, Memory.Declarations.Variable(i, t))
           }
+          case t: Memory.Declarations.IntConst => newTable
           case x => {
             error("concreteRecordType:Type", x)
             Memory.Declarations.SymbolTable()
@@ -738,6 +742,7 @@ object Tree {
       Memory.SymbolTables + ("boolean", Memory.Declarations.BooleanType)
       Memory.SymbolTables + ("string", Memory.Declarations.StringType)
       declarations.compile(Memory.SymbolTables().symbolTable)
+
       Memory.setMainProgramLength(Memory.SymbolTables.currentAddress)
       OberonInstructions.IntegerVal(Memory.mainProgramLength)
       OberonInstructions.SetSP
@@ -823,7 +828,7 @@ object Tree {
       OberonInstructions.LabelInstruction(l1)
       statement.compile(symbolTable);
       condition.compile(symbolTable);
-      OberonInstructions.BranchFalseInstruction(l2)
+      OberonInstructions.BranchTrueInstruction(l2)
       OberonInstructions.JumpInstruction(l1)
       OberonInstructions.LabelInstruction(l2)
       Memory.Declarations.NilDescriptor

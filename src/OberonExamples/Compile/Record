@@ -11,5 +11,7 @@ a,b :
 	end;
 begin
 a.y2.g.w := 15;
-print a.y2.g.w
+a.y1.i.w:= a.y2.g.w;
+print a.y2.g.w;
+print a.y1.i.w
 end m.

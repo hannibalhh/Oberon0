@@ -1,0 +1,56 @@
+module m;
+
+const
+c1 = 10;
+
+type
+t1 = array[c1]of integer;
+t2 = record x,y : integer end;
+
+var
+i,j,k : integer;
+a     : array[15] of array[20] of integer;
+r     : record 
+         a : t1;
+         b : array[2] of t2;
+        end;     
+
+procedure p1(var v : integer; w : integer);
+ var vp, vp1 : integer;
+ 
+ procedure p11(pv : integer; var v : integer);
+ begin
+  v := 3*pv + vp;
+ end p1;
+ 
+ begin
+  v := 2* w;
+  vp := v;
+  Print i;
+  p11(i,vp1);
+  Print "$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$";
+  Print(vp1);
+ end p1;
+ 
+begin
+i := 1; j := i + 1; k := j + 1;
+while i < 5 do i := i + 1 end;
+if j = 2 then j := 3; Print j end; 
+if k > 10 then Print "> 10" else Print "kleiner 10" end;
+loop
+i := i +1;
+Print i;
+exit if i > 10;
+Print "Weiter"
+end;
+Print i; 
+a[i][i+1] := 99;
+Print a[11][12];
+r.a[c1-2]:= 88;
+k := r.a[8];
+Print k;
+r.b[0].x := 999;
+Print r.b[0].x;
+p1(i, 2 * 5000);
+Print i;
+end m.

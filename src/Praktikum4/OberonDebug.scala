@@ -6,10 +6,10 @@ object OberonDebug {
  
   val compile = true
   val instructions = true
-  val memory = true
+  val memory = false
   
   val abstractSyntaxTree = true
-  val symbolTable = true;
+  val symbolTable = false;
   
   val interpreter = false;
 }

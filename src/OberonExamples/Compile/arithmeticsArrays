@@ -3,12 +3,13 @@ var
 i,j : array [20] of integer;
 k : integer;
 begin
-i[0] := (1 + 2) * 20;
-j[0] := (1 + 2) * i[0];
-k := 2 * j[0];
-print "i[0]: ";
-print i[0];
-print "j[0]: ";
-print j[0];
+i[3] := (1 + 2) * 20;
+j[4] := (1 + 2) * i[3];
+k := 2 * j[4];
+print "i[3]: ";
+print i[3];
+print "j[4]: ";
+print j[4];
+print "k: ";
 print k
 end m.

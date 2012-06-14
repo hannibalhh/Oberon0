@@ -1,0 +1,10 @@
+module m;
+var 
+a,b : 
+	record
+		x: array[10] of integer;
+	end;
+begin
+a.x[3] := 5;
+print a.x[3];
+end m.

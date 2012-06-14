@@ -1,8 +1,12 @@
 module m;
 var
-i,j : integer;
+i,j,a,b,c : integer;
 begin
-i := -(1 + 2) * 10;
+a := 2;
+b := 3 + a;
+c := a + b;
+print c;
+i := 1-(1 + 2)*10;
 j := (1 + 2) * i;
 print i;
 print j
