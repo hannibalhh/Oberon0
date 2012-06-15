@@ -9,21 +9,23 @@ object OberonParser extends App {
   val pre = "src/OberonExamples/"
   val preC = pre + "Compile/"
   val preV = pre + "Voeller/"
+  val preNT = pre + "NT/"
   val t0 = "test0-integer-ops.txt" 			// ok
   val t1 = "test1-statements.txt" 			// ok
   val t2 = "test2-named-constants.txt" 		// ok
-  val t3 = "test3-array.txt" 				// ok (Zuweisung mit *1)
-  val t4 = "test4-record.txt"				// Zuweisung r1 := r2 geht nicht
-  val t5 = "test5-named-types.txt" 			// array im record läuft nicht
-  val t6 = "test6-simple-procedures.txt" 	// call node und labels laufen nicht
+  val t3 = "test3-array.txt" 				// ok
+  val t4 = "test4-record.txt" 				// ok
+  val t5 = "test5-named-types.txt" 			// arrays von records laufen nicht
+  val t6 = "test6-simple-procedures.txt" 	// parameter laufen nicht
   val t7 = "test7-procedures-more.txt"
   val t8 = "test8-local-procedures.txt"
   val t9 = "test9-recursive procedures.txt"
-  val scanner = oberonScanner(preV + t5)
+  val scanner = oberonScanner(preNT + "FormalParameters")
   var current = next
 
-  OberonCodeGenerator.run(parser)
-  OberonRunner.run
+  test(FormalParameters)
+//  OberonCodeGenerator.run(parser)
+//  OberonRunner.run
 
   def parser = {
     val m = Module
@@ -98,7 +100,10 @@ object OberonParser extends App {
       val id = ident
       if (id.isDefined) {
         inc
-        RecordReference(before, Selector(Tree.IdentNode(id.get)))
+        if (before.isDefined)
+          RecordReference(before, Selector(Tree.IdentNode(id.get)))
+        else
+          RecordReference(Tree.IdentNode(id.get), Selector(Nil))
       } else {
         error("Selector with ident after dot")
         Nil
@@ -510,15 +515,20 @@ object OberonParser extends App {
   //FPSection = [’VAR’] IdentList ’:’ Type. // tested
   def FPSection: FormalParameters = {
     trace("FPSection")
-    if (VAR) {
+    val variable = if (VAR) {
       inc
-    }
+      true
+    } else
+      false
     val idl = IdentList
     if (colon) {
       inc
       val t = Type
       if (t.isDefined) {
-        Tree.FPSection(idl, t)
+        if (variable)
+          Tree.ReferenceParameter(idl, t, OptionalFormalParameters)
+        else
+          Tree.ValueParameter(idl, t, OptionalFormalParameters)
       } else {
         error("FPSection with Type after :")
         Nil
@@ -534,7 +544,7 @@ object OberonParser extends App {
     trace("FormalParamters")
     val fps = FPSection
     if (fps.isDefined) {
-      Tree.FPSection(fps.identFPSection, fps._typeFPSection, OptionalFormalParameters)
+      fps
     } else {
       error("FormalParameters with FPSection")
       Nil
@@ -545,13 +555,7 @@ object OberonParser extends App {
     trace("OptionalFPSection")
     if (semicolon) {
       inc
-      val fps = FPSection
-      if (fps.isDefined) {
-        Tree.FPSection(fps.identFPSection, fps._typeFPSection, OptionalFormalParameters)
-      } else {
-        error("OptionalFormalParameters with FPSection after ;")
-        Nil
-      }
+      FPSection
     } else {
       // no error because its optional
       Nil

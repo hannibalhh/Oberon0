@@ -10,17 +10,20 @@ object Memory {
     private val symbolTables = Array(Declarations.SymbolTable(new HashMap[String, Descriptor]), Declarations.SymbolTable(new HashMap[String, Descriptor]), Declarations.SymbolTable(new HashMap[String, Descriptor]), Declarations.SymbolTable(new HashMap[String, Descriptor]), Declarations.SymbolTable(new HashMap[String, Descriptor]))
 
     def +(s: String, d: SimpleType) = {
-      trace("new entry: " + s + " -> " + d)
+      trace("Level:"+ Level.value + ": new entry: " + s + " -> " + d)
       symbolTables(Level.value) = symbolTables(Level.value) + (s, d)
     }
 
     def +(s: String, d: Descriptor) = {
-      trace("new entry: " + s + " -> " + d)
+      trace("Level:"+ Level.value + ": new entry: " + s + " -> " + d)
       symbolTables(Level.value) = symbolTables(Level.value) + (s, d)
       trace("currentAddress: " + currentAddress + " + " + d.size + " = " + (currentAddress + d.size) + "")
       incCurrAddr(d.size)
     }
-    def apply(s: String) = symbolTables(Level.value)(s)
+    def apply(s: String) = {
+      trace("s:" + s)
+      symbolTables(Level.value)(s)
+    }
     
     def apply() = symbolTables(Level.value)
     override def toString = {
@@ -34,17 +37,18 @@ object Memory {
       }
       s
     }
-    var record = false
+//    var record = false
     private def incCurrAddr(i: Int) = {
       if (i > 0)
         currAddr += i
     }
     private var currAddr = 0
     def currentAddress = currAddr
-    def trace(x: Any) = if (OberonDebug.symbolTable) println("Memory.SymbolTables: " + x)
+    def trace(x: Any) = if (OberonDebug.symbolTables) println("Memory.SymbolTables: " + x)
   }
   def mainProgramLength = cip.TreeGenerator.lengthDataSegmentMainProgram
   def setMainProgramLength(i: Int) = cip.TreeGenerator.lengthDataSegmentMainProgram = i
+  var mainProgramStart = 0
 
   object Level {
     def inc = CodeGen.level += 1
@@ -83,7 +87,7 @@ object Memory {
 
     case object Procedcure
     case class Procedcure(name: String, startaddress: Int, lengthparblock: Int,
-      framesize: Int, params: SymbolTableTrait) extends Descriptor {
+      var framesize: Int, params: SymbolTableTrait) extends Descriptor {
       def print(n: Int) = ->("Procedcure(name=" + name + ",startaddress=" + startaddress + ",lengthparblock=" + lengthparblock + ",framesize=" + framesize + ")" + sizeString, n) + params.print(n + 1)
       override def toInt = startaddress
     }

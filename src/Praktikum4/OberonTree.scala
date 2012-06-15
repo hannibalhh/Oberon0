@@ -6,7 +6,7 @@ import scala.annotation.tailrec
 @tailrec
 object Tree {
 
-  case object Nil extends Tree[Nothing] with Expression with Statement with Declarations with FormalParameters with ConstIdent with Type with Field with FieldList with ProcedureDeclaration with Ident {
+  case object Nil extends Tree[Nothing] with Expression with Statement with Declarations with FormalParameters with ConstIdent with Type with Field with FieldList with ProcedureDeclaration with Ident with FPSection{
     override def toString = "."
     override def print(n: Int): String = ""
     override def compile(symbolTable: Map[String, Descriptor] = new HashMap) = Memory.Declarations.NilDescriptor
@@ -102,6 +102,10 @@ object Tree {
                   case i: Ident => OberonInstructions.ContInstruction(a.size)
                   case x => OberonInstructions.ContInstruction(1)
                 }
+              }
+              case a: Memory.Declarations.RecordType => {
+                OberonInstructions.IntegerVal(0)
+                OberonInstructions.ContInstruction(t.size)
               }
               case x => {
                 OberonInstructions.ContInstruction(t.size)
@@ -295,10 +299,10 @@ object Tree {
 
   case object ArrayReference
   case class ArrayReference(ident: Expression, next: Expression) extends Tree[ArrayReference] with Expression {
-
     override def compile(symbolTable: Map[String, Descriptor] = new HashMap) = {
       trace("ArrayReference")
       val basetype = ident.compile(symbolTable)
+      //      trace("base: " + basetype)
       if (next.isDefined) {
         val (t, s) = basetype match {
           case v: Memory.Declarations.Variable => {
@@ -306,7 +310,7 @@ object Tree {
               case a: Memory.Declarations.ArrayType => {
                 (a, a.basetype.size)
               }
-              case x => {               
+              case x => {
                 OberonInstructions.MultiplicationInstruction
                 OberonInstructions.AdditionInstruction
                 (x, basetype.size)
@@ -324,7 +328,24 @@ object Tree {
           }
         }
         OberonInstructions.IntegerVal(s)
-        next.compile(symbolTable)
+        next.compile {
+          basetype match {
+            case v: Memory.Declarations.Variable => {
+              v._type match {
+                case a: Memory.Declarations.ArrayType => {
+                  a.basetype match {
+                    case r: Memory.Declarations.RecordType => {
+                      r.symbolTable.symbolTable
+                    }
+                    case _ => symbolTable
+                  }
+                }
+                case _ => symbolTable
+              }
+            }
+            case _ => symbolTable
+          }
+        }
         t
       } else {
         OberonInstructions.MultiplicationInstruction
@@ -414,6 +435,7 @@ object Tree {
     override def compile(symbolTable: Map[String, Descriptor] = new HashMap) = {
       trace("RecordRefNode")
       val a = record.compile(symbolTable) match {
+        case s: Memory.Declarations.SimpleType => s
         case recordTable: Memory.Declarations.RecordType => {
           OberonInstructions.IntegerVal(recordTable.startAddress)
           val name = record.identIdent.value.get.toString
@@ -458,13 +480,24 @@ object Tree {
   trait Type extends Tree[Type]
 
   //FPSection = [ÕVARÕ] IdentList Õ:Õ Type.
-  case object FPSection
-  case class FPSection(override val identFPSection: Ident, override val _typeFPSection: Type, override val optionalFPSection: FormalParameters = Nil) extends FormalParameters {
+  trait FPSection extends FormalParameters 
+  
+  case object ValueParameter
+  case class ValueParameter(override val identFPSection: Ident, override val _typeFPSection: Type, override val optionalFPSection: FormalParameters = Nil) extends FPSection {
     override def compile(symbolTable: Map[String, Descriptor] = new HashMap) = {
-      trace("FPSection")
+      trace("ValueParameter")
       Memory.Declarations.NilDescriptor
     }
-    override def print(n: Int) = ->("FPSection", n) + identFPSection.print(n + 1) + _typeFPSection.print(n + 1) + optionalFPSection.print(n + 1)
+    override def print(n: Int) = ->("ValueParameter", n) + identFPSection.print(n + 1) + _typeFPSection.print(n + 1) + optionalFPSection.print(n + 1)
+  }
+
+  case object ReferenceParameter
+  case class ReferenceParameter(override val identFPSection: Ident, override val _typeFPSection: Type, override val optionalFPSection: FormalParameters = Nil) extends FPSection {
+    override def compile(symbolTable: Map[String, Descriptor] = new HashMap) = {
+      trace("ReferenceParameter")
+      Memory.Declarations.NilDescriptor
+    }
+    override def print(n: Int) = ->("ReferenceParameter", n) + identFPSection.print(n + 1) + _typeFPSection.print(n + 1) + optionalFPSection.print(n + 1)
   }
 
   //FormalParameters = FPSection {Õ;Õ FPSection}.
@@ -480,14 +513,16 @@ object Tree {
   case class ProcedureHeading(identProcedureHeading: Ident, formalParameters: FormalParameters = Nil) extends Tree[ProcedureHeading] {
     override def compile(symbolTable: Map[String, Descriptor] = new HashMap) = {
       trace("ProecureHeading")
-      val name = identProcedureHeading.value
+      val name = identProcedureHeading.identIdent.value.get.toString
       val startaddress = OberonInstructions.newLabel
       val lengthparblock = 0 // parameter not implemented
       val framesize = Memory.SymbolTables.currentAddress
       val params = Memory.Declarations.SymbolTable(new HashMap)
       val procedure = Memory.Declarations.Procedcure(name, startaddress, lengthparblock,
         framesize, params)
-      Memory.SymbolTables + (name, procedure)
+      Memory.Level.dec
+      Memory.SymbolTables + ("#" + name, procedure)
+      Memory.Level.inc
       procedure
     }
     override def print(n: Int) = ->("ProcedureHeading", n) + identProcedureHeading.print(n + 1) + formalParameters.print(n + 1)
@@ -522,12 +557,13 @@ object Tree {
 
           // SP := SP + framesize;
           OberonInstructions.GetSP
+          procedure.framesize = Memory.SymbolTables().size
           OberonInstructions.IntegerVal(procedure.framesize)
           OberonInstructions.AdditionInstruction
           OberonInstructions.SetSP
 
           // content
-          declarationsProcedureBody.compile(symbolTable)
+          val decl = declarationsProcedureBody.compile(symbolTable)
           statementProcedureBody.compile(symbolTable)
 
           // finish		
@@ -584,6 +620,8 @@ object Tree {
       procedureBody.compile(new HashMap + Tuple(name, proc))
       Memory.Level.dec
       next.compile(symbolTable)
+      if (!next.isDefined)
+        OberonInstructions.LabelInstruction(Memory.mainProgramStart)
       Memory.Declarations.NilDescriptor
     }
   }
@@ -628,7 +666,8 @@ object Tree {
       trace("TypeDeclarations")
       val d = _type.compile(symbolTable);
       Memory.SymbolTables + (ident.identIdent.value.get.toString, d)
-      next.compile(symbolTable + Tuple(ident.identIdent.value.get.toString, d));
+      next.compile(symbolTable + Tuple(ident.identIdent.value.get.toString, d))
+      d
     }
     override def print(n: Int) = ->("TypeDeclarations", n) + ident.print(n + 1) + _type.print(n + 1) + next.print(n + 1)
   }
@@ -646,14 +685,16 @@ object Tree {
                 case t: Memory.Declarations.SimpleType => {
                   val entry = Memory.Declarations.Variable(Memory.SymbolTables.currentAddress, t)
                   Memory.SymbolTables + (i.identIdent.value.get.toString, entry)
+                  t
                 }
                 case t: Memory.Declarations.ArrayType => {
                   val entry = Memory.Declarations.Variable(Memory.SymbolTables.currentAddress, t)
                   Memory.SymbolTables + (i.identIdent.value.get.toString, entry)
+                  t
                 }
                 case t: Memory.Declarations.RecordType => {
                   Memory.SymbolTables + (i.identIdent.value.get.toString, concreteRecordType(t, Memory.SymbolTables.currentAddress))
-                  Memory.Declarations.NilDescriptor
+                  t
                 }
                 case x => {
                   error("VarDeclarations: SimpleType or Record", x)
@@ -670,14 +711,14 @@ object Tree {
         } else
           Memory.Declarations.NilDescriptor
       }
-      compileIdent(ident)
+      val d = compileIdent(ident)
       next.compile()
+      d
     }
 
     def concreteRecordType(r: Memory.Declarations.RecordType, currentAddress: Int): Memory.Declarations.RecordType = {
       val startAddr = currentAddress
       var i = 0
-      trace(r)
       var newTable = Memory.Declarations.SymbolTable()
       for ((name, desc) <- r.symbolTable.symbolTable) {
         newTable = desc match {
@@ -736,8 +777,9 @@ object Tree {
       trace("Module");
       OberonInstructions.StringVal(idStart.identIdent.value.get.toString)
       val mainProgramStart = OberonInstructions.newLabel
+      Memory.mainProgramStart = mainProgramStart
       OberonInstructions.JumpInstruction(mainProgramStart)
-      OberonInstructions.LabelInstruction(mainProgramStart)
+      //      OberonInstructions.LabelInstruction(mainProgramStart)
       Memory.SymbolTables + ("integer", Memory.Declarations.IntegerType)
       Memory.SymbolTables + ("boolean", Memory.Declarations.BooleanType)
       Memory.SymbolTables + ("string", Memory.Declarations.StringType)
@@ -762,7 +804,16 @@ object Tree {
       trace("Assignment")
       val t = expression.compile(symbolTable)
       ident.compile()
-      OberonInstructions.AssignmentInstruction(t.size)
+      OberonInstructions.AssignmentInstruction {
+        t match {
+          case a: Memory.Declarations.ArrayType => 1
+          case r: Memory.Declarations.RecordType => {
+            OberonInstructions.IntegerVal(t.size)
+            t.size
+          }
+          case _ => t.size
+        }
+      }
       Memory.Declarations.NilDescriptor
     }
 
@@ -774,6 +825,26 @@ object Tree {
   case class ProcedureCall(ident: Ident, expression: Tree[ActualParameters] = Nil) extends Statement {
     override def compile(symbolTable: Map[String, Descriptor] = new HashMap) = {
       trace("ProcedureCall")
+      val name = ident.identIdent.value.get.toString
+      val procedure = Memory.SymbolTables("#" + name)
+      if (procedure.isDefined) {
+        procedure.get match {
+          case p: Memory.Declarations.Procedcure => {
+            if (p.params.size == 0) {
+              OberonInstructions.InitStack(p.framesize + 3)
+            } else {
+              OberonInstructions.InitStack(p.lengthparblock + p.framesize + 3);
+              error("ProcedureCall: params not supported yet", p)
+            }
+            OberonInstructions.CallInstruction(p.startaddress);
+          }
+          case x => {
+            error("ProcedureCall: Procedure Declaration", (name, x))
+          }
+        }
+      } else
+        error("ProcedureCall: Procedure Declaration", (name, procedure))
+
       Memory.Declarations.NilDescriptor
     }
     override def print(n: Int) = ->("ProcedureCall", n) + ident.print(n + 1) + expression.print(n + 1)

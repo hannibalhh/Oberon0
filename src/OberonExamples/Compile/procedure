@@ -1,9 +1,13 @@
 MODULE Sample;
-PROCEDURE d();
+var x : integer;
+PROCEDURE d(z: integer ; z1: integer);
 VAR x, y, r, q, w : integer;
 BEGIN
-	print "juhu"
+	x := 2;
+	print x;
 END d;
 BEGIN 
-	d()
+	x := 1;
+	d();
+	print x;
 END Sample.
