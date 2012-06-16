@@ -20,8 +20,8 @@ object OberonParser extends App {
   val t7 = "test7-procedures-more.txt"
   val t8 = "test8-local-procedures.txt"
   val t9 = "test9-recursive procedures.txt"
-    val scanner = oberonScanner(preV + t5)
-//  val scanner = oberonScanner(preC + "procedure")
+//    val scanner = oberonScanner(preV + t5)
+  val scanner = oberonScanner(preC + "procedure")
   //  val scanner = oberonScanner(preNT + "FormalParameters")
   var current = next
 

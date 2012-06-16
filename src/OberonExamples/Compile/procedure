@@ -1,10 +1,11 @@
 MODULE Sample;
 var x : integer;
 PROCEDURE d(var i2: integer;var i1:integer);
-VAR x, y, r, q, w : integer;
+VAR y, r, q, w : integer;
 BEGIN
 	print i2;
 	print i1;
+	print x;
 	x := 2;
 	print x;
 END d;

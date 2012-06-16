@@ -20,10 +20,13 @@ object Memory {
       trace("currentAddress: " + currentAddress + " + " + d.size + " = " + (currentAddress + d.size) + "")
       incCurrAddr(d.size)
     }
-    def apply(s: String) = {
-      trace("s:" + s)
-      trace(symbolTables(Level.value))
-      symbolTables(Level.value)(s)
+    def apply(s: String,level:Int = Level.value):Option[Descriptor] = {
+      val r = symbolTables(level)(s)
+      if (r.isEmpty && level > 0){
+        apply(s,level-1)
+      }
+      else
+        r
     }
     
     def apply() = symbolTables(Level.value)
