@@ -2,13 +2,13 @@ package Praktikum4
 
 object OberonDebug {
 
-  val parser = true
+  val parser = false
  
   val compile = true
   val instructions = false
   val memory = false
   
-  val abstractSyntaxTree = true
+  val abstractSyntaxTree = false
   val symbolTable = true;
   val symbolTables = false;
   

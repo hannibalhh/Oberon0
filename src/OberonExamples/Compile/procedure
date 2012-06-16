@@ -1,13 +1,15 @@
 MODULE Sample;
 var x : integer;
-PROCEDURE d(z: integer ; z1: integer);
+PROCEDURE d(var i2: integer;var i1:integer);
 VAR x, y, r, q, w : integer;
 BEGIN
+	print i2;
+	print i1;
 	x := 2;
 	print x;
 END d;
 BEGIN 
-	x := 1;
-	d();
+	x := 10;
+	d(x,20);
 	print x;
 END Sample.

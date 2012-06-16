@@ -10,22 +10,24 @@ object OberonParser extends App {
   val preC = pre + "Compile/"
   val preV = pre + "Voeller/"
   val preNT = pre + "NT/"
-  val t0 = "test0-integer-ops.txt" 			// ok
-  val t1 = "test1-statements.txt" 			// ok
-  val t2 = "test2-named-constants.txt" 		// ok
-  val t3 = "test3-array.txt" 				// ok
-  val t4 = "test4-record.txt" 				// ok
-  val t5 = "test5-named-types.txt" 			// arrays von records laufen nicht
-  val t6 = "test6-simple-procedures.txt" 	// parameter laufen nicht
+  val t0 = "test0-integer-ops.txt" // ok
+  val t1 = "test1-statements.txt" // ok
+  val t2 = "test2-named-constants.txt" // ok
+  val t3 = "test3-array.txt" // ok
+  val t4 = "test4-record.txt" // ok
+  val t5 = "test5-named-types.txt" // ok
+  val t6 = "test6-simple-procedures.txt" // parameter laufen nicht
   val t7 = "test7-procedures-more.txt"
   val t8 = "test8-local-procedures.txt"
   val t9 = "test9-recursive procedures.txt"
-  val scanner = oberonScanner(preNT + "FormalParameters")
+    val scanner = oberonScanner(preV + t5)
+//  val scanner = oberonScanner(preC + "procedure")
+  //  val scanner = oberonScanner(preNT + "FormalParameters")
   var current = next
 
-  test(FormalParameters)
-//  OberonCodeGenerator.run(parser)
-//  OberonRunner.run
+  //  test(FormalParameters)
+  OberonCodeGenerator.run(parser)
+  OberonRunner.run
 
   def parser = {
     val m = Module
@@ -557,6 +559,7 @@ object OberonParser extends App {
       inc
       FPSection
     } else {
+      trace("blub")
       // no error because its optional
       Nil
     }
@@ -576,7 +579,14 @@ object OberonParser extends App {
             inc
             Tree.ProcedureHeading(IdentNode(id.get))
           } else {
-            Tree.ProcedureHeading(IdentNode(id.get), FormalParameters)
+            val fp = FormalParameters
+            if (bracketOff) {
+              inc
+              Tree.ProcedureHeading(IdentNode(id.get), fp)
+            } else {
+              error("ProcedureHeading with ) after FormalParameters")
+              Nil
+            }
           }
         } else {
           error("ProcedureHeading with ( after ident")

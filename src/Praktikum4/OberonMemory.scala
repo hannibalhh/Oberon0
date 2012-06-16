@@ -1,5 +1,5 @@
 package Praktikum4
-import scala.collection.immutable.HashMap
+import scala.collection.immutable.TreeMap
 import cip.base.CodeGen
 
 object Memory {
@@ -7,7 +7,7 @@ object Memory {
   import Declarations._
   // level -> symbolTabelle
   object SymbolTables {
-    private val symbolTables = Array(Declarations.SymbolTable(new HashMap[String, Descriptor]), Declarations.SymbolTable(new HashMap[String, Descriptor]), Declarations.SymbolTable(new HashMap[String, Descriptor]), Declarations.SymbolTable(new HashMap[String, Descriptor]), Declarations.SymbolTable(new HashMap[String, Descriptor]))
+    private val symbolTables = Array(Declarations.SymbolTable(new TreeMap[String, Descriptor]), Declarations.SymbolTable(new TreeMap[String, Descriptor]), Declarations.SymbolTable(new TreeMap[String, Descriptor]), Declarations.SymbolTable(new TreeMap[String, Descriptor]), Declarations.SymbolTable(new TreeMap[String, Descriptor]))
 
     def +(s: String, d: SimpleType) = {
       trace("Level:"+ Level.value + ": new entry: " + s + " -> " + d)
@@ -22,6 +22,7 @@ object Memory {
     }
     def apply(s: String) = {
       trace("s:" + s)
+      trace(symbolTables(Level.value))
       symbolTables(Level.value)(s)
     }
     
@@ -49,6 +50,7 @@ object Memory {
   def mainProgramLength = cip.TreeGenerator.lengthDataSegmentMainProgram
   def setMainProgramLength(i: Int) = cip.TreeGenerator.lengthDataSegmentMainProgram = i
   var mainProgramStart = 0
+  var mainProgramStartSetted = false
 
   object Level {
     def inc = CodeGen.level += 1
@@ -60,42 +62,53 @@ object Memory {
 
   object Declarations {
 
+    trait IntConstTrait extends Descriptor
     case object IntConst
-    case class IntConst(intval: Int) extends Descriptor {
+    case class IntConst(intval: Int) extends IntConstTrait {
       def print(n: Int) = ->("IntConst(" + intval + ")" + sizeString, n)
+      def toInt = intval
+      override val size = 1
     }
 
-    trait VariableDescriptor extends Descriptor {
-      val address: Int
-      val _type: Type
-      val isParameter: Boolean
+    trait Variable extends Descriptor {
+      val address: Int = 0
+      val _type: Type 
+      val isParameter: Boolean = false
       override val size = _type.size
       override def toInt = address
     }
-
-    case object Variable
-    case class Variable(address: Int, _type: Type) extends Descriptor with VariableDescriptor {
-      def print(n: Int) = ->("Variable(address=" + address + ")" + sizeString, n) + _type.print(n + 2)
-      val isParameter = false
+    object Variable{
+      def apply(address: Int, _type: Type,ref:Boolean) = {
+        if (ref)
+          ValueVariable(address,_type)
+        else
+          ReferenceVariable(address,_type)
+      }
+    }
+    case object ValueVariable
+    case class ValueVariable(override val address: Int, override val _type: Type) extends Descriptor with Variable {
+      def print(n: Int) = ->("ValueVariable(address=" + address + ")" + sizeString, n) + _type.print(n + 2)
+      override val isParameter = false
     }
 
-    case object ParameterVariable
-    case class ParameterVariable(address: Int, _type: Type) extends Descriptor with VariableDescriptor {
-      def print(n: Int) = ->("ParameterVariable(address=" + address + ")" + sizeString, n) + _type.print(n + 1)
-      val isParameter = true
+    case object ReferenceVariable
+    case class ReferenceVariable(override val  address: Int, override val  _type: Type) extends Descriptor with Variable {
+      def print(n: Int) = ->("ReferenceVariable(address=" + address + ")" + sizeString, n) + _type.print(n + 1)
+      override val isParameter = true
+      override val size = 1
     }
 
     case object Procedcure
     case class Procedcure(name: String, startaddress: Int, lengthparblock: Int,
       var framesize: Int, params: SymbolTableTrait) extends Descriptor {
-      def print(n: Int) = ->("Procedcure(name=" + name + ",startaddress=" + startaddress + ",lengthparblock=" + lengthparblock + ",framesize=" + framesize + ")" + sizeString, n) + params.print(n + 1)
+      def print(n: Int) = ->("Procedure(name=" + name + ",startaddress=" + startaddress + ",lengthparblock=" + lengthparblock + ",framesize=" + framesize + ")" + sizeString, n) + params.print(n + 1)
       override def toInt = startaddress
     }
 
     trait Type extends Descriptor
     case object ArrayType
     case class ArrayType(numberOfElems: Int, basetype: Type) extends Type {
-      def print(n: Int) = ->("ArrayType(numberOfElems=" + numberOfElems + ")", n) + basetype.print(n + 1)
+      def print(n: Int) = ->("ArrayType(numberOfElems=" + numberOfElems + ")" + sizeString, n) + basetype.print(n + 1)
       override def toInt = numberOfElems
       override val size: Int = numberOfElems * basetype.size
     }
@@ -104,13 +117,13 @@ object Memory {
       override val size: Int
       def +(s: String, d: Descriptor): SymbolTableTrait = NilDescriptor
       def +(d: Descriptor): SymbolTableTrait = NilDescriptor
-      val symbolTable: Map[String, Descriptor] = new HashMap
+      val symbolTable: Map[String, Descriptor] = new TreeMap
       def apply(s: String): Option[Descriptor] = None
-      override def toInt: Int
+      override def toInt: Int = symbolTable.size
     }
 
     case object SymbolTable
-    case class SymbolTable(override val symbolTable: Map[String, Descriptor] = new HashMap) extends SymbolTableTrait {
+    case class SymbolTable(override val symbolTable: Map[String, Descriptor] = new TreeMap) extends SymbolTableTrait {
       def print(n: Int) = {
         var s = ""
         for ((x, y) <- symbolTable) {
@@ -159,27 +172,29 @@ object Memory {
     }
 
     trait SimpleType extends Type {
-      val name: String
+      val name: String = "None"
       override val size = 1
+      def toInt = 1
     }
     case object IntegerType extends SimpleType {
-      val name = "IntegerType"
+      override val name = "IntegerType"
       def print(n: Int) = ->(name + sizeString, n)
     }
     case object StringType extends SimpleType {
-      val name = "StringType"
+      override val name = "StringType"
       def print(n: Int) = ->(name + sizeString, n)
     }
     case object BooleanType extends SimpleType {
-      val name = "BooleanType"
+      override val name = "BooleanType"
       def print(n: Int) = ->(name + sizeString, n)
     }
 
     object NilDescriptor extends Descriptor with SymbolTableTrait {
       def print(n: Int) = "NilDescriptor"
-      override val size = -1
+      override val size = 0
       override val isDefined = false
       override val isEmpTy = true
+      override def toInt = 0
     }
 
     trait Descriptor {
@@ -189,7 +204,7 @@ object Memory {
       val isDefined = true
       val isEmpTy = false
       def print(n: Int): String
-      def toInt: Int = -1
+      def toInt: Int
       override def toString = print(0)
     }
 

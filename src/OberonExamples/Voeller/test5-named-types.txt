@@ -14,5 +14,7 @@ var
  v, w : array[c1] of t2;  
 begin
 v[2].c := 2;
+v[2].a[2] := 20;
 print v[2].c;
+print v[2].a[2];
 end m6.
