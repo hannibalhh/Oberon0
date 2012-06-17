@@ -20,6 +20,9 @@ object Memory {
       trace("currentAddress: " + currentAddress + " + " + d.size + " = " + (currentAddress + d.size) + "")
       incCurrAddr(d.size)
     }
+    
+    def applyOnly(s: String,level:Int = Level.value):Option[Descriptor] = symbolTables(level)(s)
+    
     def apply(s: String,level:Int = Level.value):Option[Descriptor] = {
       val r = symbolTables(level)(s)
       if (r.isEmpty && level > 0){
@@ -30,6 +33,7 @@ object Memory {
     }
     
     def apply() = symbolTables(Level.value)
+    
     override def toString = {
       var s = "\nSymbolTables:\n";
       for (i <- 0 until symbolTables.length) {
@@ -41,7 +45,7 @@ object Memory {
       }
       s
     }
-//    var record = false
+     
     private def incCurrAddr(i: Int) = {
       if (i > 0)
         currAddr += i
@@ -54,6 +58,7 @@ object Memory {
   def setMainProgramLength(i: Int) = cip.TreeGenerator.lengthDataSegmentMainProgram = i
   var mainProgramStart = 0
   var mainProgramStartSetted = false
+  var paramSize = 0
 
   object Level {
     def inc = CodeGen.level += 1
@@ -76,28 +81,28 @@ object Memory {
     trait Variable extends Descriptor {
       val address: Int = 0
       val _type: Type 
-      val isParameter: Boolean = false
+      val isVariable: Boolean = false
       override val size = _type.size
       override def toInt = address
     }
     object Variable{
-      def apply(address: Int, _type: Type,ref:Boolean) = {
+      def apply(address: Int, _type: Type,ref:Boolean = false) = {
         if (ref)
-          ValueVariable(address,_type)
+          ReferenceVariable(address,_type)          
         else
-          ReferenceVariable(address,_type)
+          ValueVariable(address,_type)
       }
     }
     case object ValueVariable
     case class ValueVariable(override val address: Int, override val _type: Type) extends Descriptor with Variable {
       def print(n: Int) = ->("ValueVariable(address=" + address + ")" + sizeString, n) + _type.print(n + 2)
-      override val isParameter = false
+      override val isVariable = false
     }
 
     case object ReferenceVariable
     case class ReferenceVariable(override val  address: Int, override val  _type: Type) extends Descriptor with Variable {
       def print(n: Int) = ->("ReferenceVariable(address=" + address + ")" + sizeString, n) + _type.print(n + 1)
-      override val isParameter = true
+      override val isVariable = true
       override val size = 1
     }
 

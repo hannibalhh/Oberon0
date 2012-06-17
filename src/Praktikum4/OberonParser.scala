@@ -20,9 +20,9 @@ object OberonParser extends App {
   val t7 = "test7-procedures-more.txt"
   val t8 = "test8-local-procedures.txt"
   val t9 = "test9-recursive procedures.txt"
-//    val scanner = oberonScanner(preV + t5)
-  val scanner = oberonScanner(preC + "procedure")
-  //  val scanner = oberonScanner(preNT + "FormalParameters")
+  val scanner = oberonScanner(preV + t6)
+//    val scanner = oberonScanner(preC + "procedure")
+//  val scanner = oberonScanner(preNT + "FormalParameters")
   var current = next
 
   //  test(FormalParameters)
@@ -606,28 +606,23 @@ object OberonParser extends App {
   def ProcedureBody: Tree[ProcedureBody] = {
     trace("ProcedureBody")
     val decl = Declarations
-    if (decl.isDefined) {
-      if (BEGIN) {
-        inc
-        val sts = StatementSequence
-        if (sts.isDefined) {
-          if (END) {
-            inc
-            Tree.ProcedureBody(decl, sts)
-          } else {
-            error("ProcedureBody with END")
-            Nil
-          }
+    if (BEGIN) {
+      inc
+      val sts = StatementSequence
+      if (sts.isDefined) {
+        if (END) {
+          inc
+          Tree.ProcedureBody(decl, sts)
         } else {
-          error("ProcedureBody with Statementsequence")
+          error("ProcedureBody with END")
           Nil
         }
       } else {
-        error("ProcedureBody with BEGIN")
+        error("ProcedureBody with Statementsequence")
         Nil
       }
     } else {
-      error("ProcedureBody with Declarations")
+      error("ProcedureBody with BEGIN")
       Nil
     }
   }

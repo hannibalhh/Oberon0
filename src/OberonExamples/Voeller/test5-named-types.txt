@@ -11,10 +11,11 @@ type
       end;
       
 var
- v, w : array[c1] of t2;  
+ v, w : array[c1] of t2;   
+ 
 begin
-v[2].c := 2;
-v[2].a[2] := 20;
-print v[2].c;
-print v[2].a[2];
+v[2].b[1] := 99;
+w := v;
+Print w[2].b[1] * 2;
+Print 99 * 2;     
 end m6.

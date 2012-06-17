@@ -65,7 +65,7 @@ object Tree {
                 OberonInstructions.AdditionInstruction
               }
             }
-            if (x.isParameter) {
+            if (x.isVariable) {
               OberonInstructions.ContInstruction(1)
             }
             x
@@ -87,7 +87,19 @@ object Tree {
       trace("Content")
       def compileIdent(i: Ident): Memory.Declarations.Descriptor = {
         val t = address.compile(symbolTable)
-        val e = Memory.SymbolTables(i.identIdent.value.get.toString)
+        val e = {
+          val e = Memory.SymbolTables.applyOnly(i.identIdent.value.get.toString)
+          if (e.isEmpty) {
+            val e = symbolTable.get(i.identIdent.value.get.toString)
+            if (e.isEmpty){
+              Memory.SymbolTables(i.identIdent.value.get.toString)
+            }
+            else
+              e
+          } 
+          else
+            e
+        }
         if (e.isDefined) {
           e.get match {
             case e: ConstIdent => t
@@ -270,20 +282,22 @@ object Tree {
     override def compile(symbolTable: Map[String, Descriptor] = new TreeMap) = {
       trace("ActualParameters")
       expressionActualParameters.compile(symbolTable)
+      if (symbolTable.isEmpty) {
+        error("ActualParameters:symbolTable member", (symbolTable, expressionActualParameters))
+      }
       val (name, d) = symbolTable.first
-      trace("name: " + name + " d: " + d)
       d match {
         case v: Memory.Declarations.Variable => {
-          val isvarpar = v.isParameter
-          if (isvarpar) {
+          if (v.isVariable) {
             val varpar = ReferenceParameter(expressionActualParameters, IdentNode(Symbol("ident", 0, 0, Some(name))))
             val param = varpar.compile(symbolTable);
-          } else
-            expressionActualParameters.compile(symbolTable);
+          } else {
+            expressionActualParameters.compile(symbolTable); // Memory.SymbolTables().
+          }
           OberonInstructions.GetSP
-          OberonInstructions.AssignmentInstruction(d.size)
+          OberonInstructions.AssignmentInstruction(v.size)
           OberonInstructions.GetSP
-          OberonInstructions.IntegerVal(d.size)
+          OberonInstructions.IntegerVal(v.size)
           OberonInstructions.AdditionInstruction
           OberonInstructions.SetSP
         }
@@ -465,12 +479,12 @@ object Tree {
       trace("RecordRefNode")
       val a = record.compile(symbolTable) match {
         case s: Memory.Declarations.SimpleType => {
-           field.compile(symbolTable)              
+          field.compile(symbolTable)
         }
         case a: Memory.Declarations.ArrayType => {
-           val f = field.compile(symbolTable)      
-           OberonInstructions.IntegerVal(f.size)
-           f
+          val f = field.compile(symbolTable)
+          OberonInstructions.IntegerVal(f.size)
+          f
         }
         case recordTable: Memory.Declarations.RecordType => {
           OberonInstructions.IntegerVal(recordTable.startAddress)
@@ -521,10 +535,27 @@ object Tree {
     override val identFPSection: Expression = Nil
     override val _typeFPSection: Type = Nil
     override val optionalFPSection: FormalParameters = Nil
+    def identSize(expr:Expression,n:Int = 0):Int = {
+      expr match {
+        case i:Ident => {
+          if (i.optionalIdent.isDefined)
+          	identSize(i.optionalIdent,n+1)
+          else
+            n+1
+        }
+        case _ => n+1
+      }
+    }
+    override def size(n:Int = 0):Int = {
+      if (optionalFPSection.isDefined)
+        optionalFPSection.size(n+1)+identSize(identFPSection)
+      else
+        n+identSize(identFPSection)
+    }
     override def compile(symbolTable: Map[String, Descriptor] = new TreeMap): Memory.Declarations.Descriptor = {
-      trace("FPSection(variable=" + isVariable + ")")
-
+      trace(name)
       def compileIdent(expr: Expression, t: Memory.Declarations.SymbolTableTrait): Memory.Declarations.SymbolTableTrait = {
+        val n = Memory.paramSize
         expr match {
           case i: Ident => {
             val entry = _typeFPSection match {
@@ -533,13 +564,19 @@ object Tree {
                 if (d.isDefined) {
                   d.get match {
                     case a: Memory.Declarations.ArrayType => {
-                      Memory.Declarations.Variable(0, a, isVariable)
+                      Memory.paramSize -= 1
+                      Memory.Declarations.Variable(-n, a, isVariable)                     
                     }
                     case r: Memory.Declarations.RecordType => {
-                      Memory.Declarations.Variable(0, r, isVariable)
+                      Memory.paramSize -= 1
+                      Memory.Declarations.Variable(-n, r, isVariable)                  
                     }
                     case s: Memory.Declarations.SimpleType => {
-                      Memory.Declarations.Variable(0, s, isVariable)
+                      Memory.paramSize -= 1
+                      Memory.Declarations.Variable(-n, s, isVariable)                   
+                    }
+                    case r: Memory.Declarations.ReferenceVariable => {
+                      r._type
                     }
                     case x => {
                       error("FPSection: Type Declaration", x)
@@ -580,13 +617,14 @@ object Tree {
                 Memory.Declarations.NilDescriptor
               }
             }
-            if (isVariable) {
-              Memory.SymbolTables + (i.identIdent.value.get.toString, entry)
+            if (!isVariable) {
+              Memory.SymbolTables + (i.identIdent.value.getOrElse("foo").toString, entry)
             }
-            val tn = t + (i.identIdent.value.get.toString, entry)
+            val tn = t + (i.identIdent.value.getOrElse("foo").toString, entry)
             if (i.optionalIdent.isDefined)
               compileIdent(i.optionalIdent, tn)
-            tn
+            else
+              tn
           }
           case x => {
             error("FPSection:compileIdent:Ident ", expr)
@@ -597,23 +635,29 @@ object Tree {
       val t = compileIdent(identFPSection, Memory.Declarations.SymbolTable(new TreeMap))
       optionalFPSection.compile(symbolTable) match {
         case s: Memory.Declarations.SymbolTableTrait => {
-          Memory.Declarations.SymbolTable(s.symbolTable ++ t.symbolTable)
+          if (s.isDefined)
+            Memory.Declarations.SymbolTable(s.symbolTable ++ t.symbolTable)
+          else
+            t
         }
-        case x => Memory.Declarations.NilDescriptor
+        case x => t
       }
     }
+    val name = "FPSection"
   }
 
   case object ValueParameter
   case class ValueParameter(override val identFPSection: Expression, override val _typeFPSection: Type, override val optionalFPSection: FormalParameters = Nil) extends FPSection {
     override def isVariable = false
     override def print(n: Int) = ->("ValueParameter", n) + identFPSection.print(n + 1) + _typeFPSection.print(n + 1) + optionalFPSection.print(n + 1)
+    override val name = "ValueParameter"
   }
 
   case object ReferenceParameter
   case class ReferenceParameter(override val identFPSection: Expression, override val _typeFPSection: Type, override val optionalFPSection: FormalParameters = Nil) extends FPSection {
     override def isVariable = true
     override def print(n: Int) = ->("ReferenceParameter", n) + identFPSection.print(n + 1) + _typeFPSection.print(n + 1) + optionalFPSection.print(n + 1)
+    override val name = "ReferenceParameter"
   }
 
   //FormalParameters = FPSection {Õ;Õ FPSection}.
@@ -621,6 +665,12 @@ object Tree {
     val optionalFPSection: FormalParameters = Nil
     val identFPSection: Expression = Nil
     val _typeFPSection: Type = Nil
+    def size(n:Int = 0):Int = {
+      if (optionalFPSection.isDefined)
+        optionalFPSection.size(n+1)
+      else
+        n+1
+    }
     override def print(n: Int) = ->("FormalParameters", n) + optionalFPSection.print(n + 1) + identFPSection.print(n + 1) + _typeFPSection.print(n + 1)
   }
 
@@ -630,7 +680,10 @@ object Tree {
     override def compile(symbolTable: Map[String, Descriptor] = new TreeMap) = {
       trace("ProecureHeading")
       val name = identProcedureHeading.identIdent.value.get.toString
-      val startaddress = OberonInstructions.newLabel
+      val startaddress = OberonInstructions.newLabel      
+      Memory.paramSize = formalParameters.size()+3
+      trace("Memory.paramSize: " + Memory.paramSize)
+      trace("formalParameters: " + formalParameters)
       val params = formalParameters.compile(symbolTable)
       params match {
         case p: Memory.Declarations.SymbolTableTrait => {
@@ -686,9 +739,10 @@ object Tree {
           OberonInstructions.AdditionInstruction
           OberonInstructions.SetSP
 
-          // content
-          val decl = declarationsProcedureBody.compile(symbolTable)
-          statementProcedureBody.compile(symbolTable)
+          // content         
+          declarationsProcedureBody.compile(symbolTable)
+          //          OberonInstructions.IntegerVal(-4)
+          statementProcedureBody.compile(procedure.params.symbolTable ++ symbolTable)
 
           // finish		
 
@@ -951,6 +1005,7 @@ object Tree {
       trace("ProcedureCall")
       val name = ident.identIdent.value.get.toString
       val procedure = Memory.SymbolTables("#" + name)
+      Memory.Level.inc
       if (procedure.isDefined) {
         procedure.get match {
           case p: Memory.Declarations.Procedcure => {
@@ -968,7 +1023,7 @@ object Tree {
         }
       } else
         error("ProcedureCall: Procedure Declaration", (name, procedure))
-
+      Memory.Level.dec
       Memory.Declarations.NilDescriptor
     }
     override def print(n: Int) = ->("ProcedureCall", n) + ident.print(n + 1) + params.print(n + 1)
